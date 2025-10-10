@@ -80,12 +80,26 @@ namespace api.controller
             // Parse the JSON and map to SummonerInfo
             dynamic? data = JsonConvert.DeserializeObject(jsonData);
             
+            // Get profile icon ID with fallback
+            var profileIconId = data?.profileIconId ?? 0;
+            var profileIconUrl = string.Empty;
+            
+            if (profileIconId > 0)
+            {
+                profileIconUrl = $"https://ddragon.leagueoflegends.com/cdn/14.20.1/img/profileicon/{profileIconId}.png";
+            }
+            else
+            {
+                profileIconUrl = "https://ddragon.leagueoflegends.com/cdn/14.20.1/img/profileicon/0.png";
+            }
+            
             return new SummonerInfo
             {
                 SummonerName = data?.name ?? "Unknown",
                 Tagline = "Unknown", // Will be set from the original request
                 Level = data?.summonerLevel ?? 0,
-                Region = "EU" // Default region for now
+                Region = "EU", // Default region for now
+                ProfileIconUrl = profileIconUrl
             };
         }
         catch (Exception)
@@ -96,7 +110,8 @@ namespace api.controller
                 SummonerName = "ExampleName",
                 Tagline = "ExampleTagline",
                 Level = 30,
-                Region = "EU"
+                Region = "EU",
+                ProfileIconUrl = "https://ddragon.leagueoflegends.com/cdn/14.20.1/img/profileicon/0.png"
             };
         }
     }

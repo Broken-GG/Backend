@@ -14,5 +14,7 @@ namespace api.models
 
         [Required]
         public string Region { get; set; } = string.Empty;
+
+        public string ProfileIconUrl { get; set; } = string.Empty;
     }
 }
