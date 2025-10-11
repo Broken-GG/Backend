@@ -45,8 +45,12 @@ app.UseAuthorization();
 app.MapControllers();
 
 Console.WriteLine("🌐 Backend server is running!");
-Console.WriteLine("📖 Swagger UI: https://localhost:5001/swagger");
-Console.WriteLine("🔗 API Base URL: https://localhost:5001/api");
-Console.WriteLine("🎮 Frontend can now call your backend!");
+Console.WriteLine("� Swagger UI: http://localhost:5000/swagger");
+Console.WriteLine("🔗 API Base URL: http://localhost:5000/api");
+Console.WriteLine("� Frontend can now call your backend!");
+Console.WriteLine();
+Console.WriteLine("📋 Available Endpoints:");
+Console.WriteLine("   📊 GET /api/SummonerInfo/{name}/{tag} - Get summoner information");
+Console.WriteLine("   🎯 GET /api/MatchInfo/{puuid} - Get last 10 matches with win/loss, players, and champions");
 
 app.Run();

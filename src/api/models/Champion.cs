@@ -7,6 +7,8 @@ namespace api.models
         [Required]
         public string ChampionName { get; set; } = string.Empty;
 
+        public string ChampionImageUrl { get; set; } = string.Empty;
+
         public int MasteryLevel { get; set; } = 0;
 
         public int MasteryPoints { get; set; } = 0;

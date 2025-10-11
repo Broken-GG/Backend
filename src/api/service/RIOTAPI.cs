@@ -70,7 +70,39 @@ namespace api.service
             
             return content;
         }
+        public virtual async Task<string> GetMatchByPUUID(string PUUID)
+        {
+            var url = $"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{PUUID}/ids?count=10";
+            Console.WriteLine($"🌐 API Call 3: GET {url}");
+            
+            var request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
 
+            var response = await _httpClient.SendAsync(request);
+            Console.WriteLine($"📊 Response Status: {response.StatusCode}");
+            
+            response.EnsureSuccessStatusCode();
 
+            var content = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"📄 Response Content: {content}");
+            
+            return content;
+        }
+        public virtual async Task<string> GetMatchDetailsByMatchId(string matchId)
+        {
+            var url = $"https://europe.api.riotgames.com/lol/match/v5/matches/{matchId}";
+            Console.WriteLine($"🌐 API Call 4: GET {url}");
+            
+            var request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
+
+            var response = await _httpClient.SendAsync(request);
+            Console.WriteLine($"📊 Response Status: {response.StatusCode}");
+            
+            response.EnsureSuccessStatusCode();
+
+            var content = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"📄 Response Content: {content}");
+            
+            return content;
+        }
     }
 }
