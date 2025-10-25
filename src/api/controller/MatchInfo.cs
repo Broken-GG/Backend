@@ -43,14 +43,14 @@ namespace api.controller
                 var matchSummaries = new List<MatchSummary>();
                 var matchesToProcess = Math.Min(10, matchIds.Length); // Take up to 10 matches
                 
-                Console.WriteLine($"🎯 Processing {matchesToProcess} matches for PUUID: {puuid}");
+                // Console.WriteLine($"🎯 Processing {matchesToProcess} matches for PUUID: {puuid}");
                 
                 for (int i = 0; i < matchesToProcess; i++)
                 {
                     try
                     {
                         var matchId = matchIds[i];
-                        Console.WriteLine($"📊 Processing match {i + 1}/{matchesToProcess}: {matchId}");
+                        // Line($"📊 Processing match {i + 1}/{matchesToProcess}: {matchId}");
                         
                         var matchDetailsJson = await _riotApi.GetMatchDetailsByMatchId(matchId);
                         var matchSummary = DeserializeMatchSummary(matchDetailsJson, puuid);
@@ -58,8 +58,8 @@ namespace api.controller
                         if (matchSummary != null)
                         {
                             matchSummaries.Add(matchSummary);
-                            Console.WriteLine($"✅ Successfully processed match {i + 1}: {(matchSummary.Victory ? "Victory" : "Defeat")}");
-                            Console.WriteLine($"   🏆 Main Player: {matchSummary.MainPlayer.ChampionName} ({matchSummary.MainPlayer.KDA})");
+                            // Console.WriteLine($"✅ Successfully processed match {i + 1}: {(matchSummary.Victory ? "Victory" : "Defeat")}");
+                            // Console.WriteLine($"   🏆 Main Player: {matchSummary.MainPlayer.ChampionName} ({matchSummary.MainPlayer.KDA})");
                         }
                         else
                         {
@@ -79,7 +79,7 @@ namespace api.controller
                     return NotFound($"Could not parse any match details for PUUID '{puuid}'");
                 }
 
-                Console.WriteLine($"🎉 Successfully processed {matchSummaries.Count} matches");
+                // Console.WriteLine($"🎉 Successfully processed {matchSummaries.Count} matches");
                 return Ok(matchSummaries.ToArray());
             }
             catch (Exception ex)
@@ -206,11 +206,11 @@ namespace api.controller
                         var summonerName = "";
                         if (!string.IsNullOrEmpty(participant?.riotIdGameName?.ToString()))
                         {
-                            summonerName = participant.riotIdGameName.ToString();
+                            summonerName = participant?.riotIdGameName?.ToString() ?? "Unknown Player";
                         }
                         else if (!string.IsNullOrEmpty(participant?.summonerName?.ToString()))
                         {
-                            summonerName = participant.summonerName.ToString();
+                            summonerName = participant?.summonerName?.ToString() ?? "Unknown Player";
                         }
                         else
                         {
@@ -249,20 +249,20 @@ namespace api.controller
                             IsMainPlayer = isMainPlayer,
 
                             // Summoner Spells
-                            summoner1Id = participant.summoner1Id,
-                            summoner2Id = participant.summoner2Id,
+                            summoner1Id = participant?.summoner1Id ?? 0,
+                            summoner2Id = participant?.summoner2Id ?? 0,
 
                             // Items
-                            item0 = participant.item0,
-                            item1 = participant.item1,
-                            item2 = participant.item2,
-                            item3 = participant.item3,
-                            item4 = participant.item4,
-                            item5 = participant.item5,
-                            item6 = participant.item6
+                            item0 = participant?.item0 ?? 0,
+                            item1 = participant?.item1 ?? 0,
+                            item2 = participant?.item2 ?? 0,
+                            item3 = participant?.item3 ?? 0,
+                            item4 = participant?.item4 ?? 0,
+                            item5 = participant?.item5 ?? 0,
+                            item6 = participant?.item6 ?? 0
                         });
                         
-                        Console.WriteLine($"👤 Player: {summonerName} | Champion: {championName} | KDA: {kdaText} | Team: {teamId} | Main: {isMainPlayer}");
+                        // Console.WriteLine($"👤 Player: {summonerName} | Champion: {championName} | KDA: {kdaText} | Team: {teamId} | Main: {isMainPlayer}");
                     }
                 }
 
@@ -278,14 +278,14 @@ namespace api.controller
                         {
                             var puuid = participant?.puuid?.ToString() ?? "null";
                             var name = participant?.riotIdGameName?.ToString() ?? participant?.summonerName?.ToString() ?? "Unknown";
-                            Console.WriteLine($"   - {puuid} ({name})");
+                            // Console.WriteLine($"   - {puuid} ({name})");
                         }
                     }
                     return null;
                 }
 
-                Console.WriteLine($"✅ Main player found: {mainPlayer.SummonerName} playing {mainPlayer.ChampionName}");
-                Console.WriteLine($"📊 Total players in match: {allPlayers.Count}");
+                // Console.WriteLine($"✅ Main player found: {mainPlayer.SummonerName} playing {mainPlayer.ChampionName}");
+                // Console.WriteLine($"📊 Total players in match: {allPlayers.Count}");
 
                 // Determine game mode based on queue ID
                 var queueId = (int)(info?.queueId ?? 0);

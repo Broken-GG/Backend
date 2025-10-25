@@ -13,42 +13,61 @@ namespace api.controller
     public class SummonerInfoController : ControllerBase
 {
     private readonly RIOTAPI _riotApi;
-
+ 
     public SummonerInfoController(RIOTAPI riotApi)
     {
         _riotApi = riotApi;
     }
 
     [HttpGet("{summonerName}/{tagline}")]
-    public async Task<ActionResult<SummonerInfo>> GetSummonerInfo(string summonerName, string tagline)
+    public async Task<IActionResult> GetSummonerInfo(string summonerName, string tagline)
     {
         try
         {
-            // First, get the PUUID using summoner name and tagline
+            // Get PUUID and other summoner info
             var puuidData = await _riotApi.GetPUUIDBySummonerNameAndTagline(summonerName, tagline);
-            var puuidAndNameInfo = DeserializePUUIDInfo(puuidData);
-            
-            if (string.IsNullOrEmpty(puuidAndNameInfo.PUUID))
+            var puuidInfo = JsonConvert.DeserializeObject<dynamic>(puuidData);
+
+            if (puuidInfo?.puuid == null)
             {
-                return NotFound($"Summoner '{summonerName}#{tagline}' not found");
+                return NotFound(new { message = "Summoner not found." });
             }
 
-            // Then, get summoner details using the PUUID
-            var summonerData = await _riotApi.GetSummonerByName(puuidAndNameInfo.PUUID);
-            var summonerInfo = DeserializeSummonerInfo(summonerData);
+            string puuid = puuidInfo.puuid;
+
+            // Get additional summoner info using the PUUID
+            var summonerInfoJson = await _riotApi.GetSummonerByName(puuid);
             
-            // Set the name and tagline from the first API call
-            summonerInfo.SummonerName = puuidAndNameInfo.GameName ?? summonerName;
-            summonerInfo.Tagline = tagline;
+            // USE THE HELPER METHOD INSTEAD OF DIRECT DESERIALIZATION
+            var summonerInfo = DeserializeSummonerInfo(summonerInfoJson);
+
+            if (summonerInfo == null)
+            {
+                return NotFound(new { message = "Summoner info not found." });
+            }
+
+            // Include PUUID and names in the response
+            summonerInfo.PUUID = puuid;
+            summonerInfo.SummonerName = puuidInfo.gameName ?? summonerName;
+            summonerInfo.Tagline = puuidInfo.tagLine ?? tagline;
+
+            // Debug logging to see what we're sending
+            Console.WriteLine($"📤 Sending to frontend:");
+            Console.WriteLine($"   - Summoner Name: {summonerInfo.SummonerName}");
+            Console.WriteLine($"   - Tagline: {summonerInfo.Tagline}");
+            Console.WriteLine($"   - Level: {summonerInfo.Level}");
+            Console.WriteLine($"   - Profile Icon URL: {summonerInfo.ProfileIconUrl}");
+            Console.WriteLine($"   - PUUID: {summonerInfo.PUUID}");
+            Console.WriteLine($"   - Region: {summonerInfo.Region}");
 
             return Ok(summonerInfo);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
+            Console.WriteLine($"Error fetching summoner info: {ex.Message}");
+            return StatusCode(500, new { message = "An error occurred while fetching summoner info." });
         }
     }
-
     private (string? PUUID, string? GameName) DeserializePUUIDInfo(string jsonData)
     {
         try
@@ -81,7 +100,13 @@ namespace api.controller
             dynamic? data = JsonConvert.DeserializeObject(jsonData);
             
             // Get profile icon ID with fallback
-            var profileIconId = data?.profileIconId ?? 0;
+            var profileIconId = (int)(data?.profileIconId ?? 0);
+            var summonerLevel = (int)(data?.summonerLevel ?? 0);
+            
+            // Debug logging
+            Console.WriteLine($"🔍 Profile Icon ID: {profileIconId}");
+            Console.WriteLine($"🔍 Summoner Level: {summonerLevel}");
+            
             var profileIconUrl = string.Empty;
             
             if (profileIconId > 0)
@@ -93,17 +118,21 @@ namespace api.controller
                 profileIconUrl = "https://ddragon.leagueoflegends.com/cdn/14.20.1/img/profileicon/0.png";
             }
             
+            Console.WriteLine($"🔍 Profile Icon URL: {profileIconUrl}");
+            
             return new SummonerInfo
             {
                 SummonerName = data?.name ?? "Unknown",
                 Tagline = "Unknown", // Will be set from the original request
-                Level = data?.summonerLevel ?? 0,
+                Level = summonerLevel,
                 Region = "EU", // Default region for now
-                ProfileIconUrl = profileIconUrl
+                ProfileIconUrl = profileIconUrl,
+                PUUID = "" // Will be set in the main method
             };
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            Console.WriteLine($"❌ Error deserializing summoner info: {ex.Message}");
             // Return placeholder if deserialization fails
             return new SummonerInfo
             {

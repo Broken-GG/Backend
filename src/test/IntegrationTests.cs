@@ -74,7 +74,7 @@ namespace api.test
                 Console.WriteLine($"✅ API calls completed successfully!");
 
                 // Assert
-                var okResult = Assert.IsType<OkObjectResult>(result.Result);
+                var okResult = Assert.IsType<OkObjectResult>(result);
                 var summonerInfo = Assert.IsType<SummonerInfo>(okResult.Value);
                 
                 Console.WriteLine($"📊 Retrieved Data:");
