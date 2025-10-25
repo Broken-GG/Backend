@@ -47,14 +47,32 @@ namespace api.models
         
         [Required]
         public int Assists { get; set; }
+
+        [Required]
+        public int CS { get; set; }
+
+        [Required]
+        public int VisionScore { get; set; }
         
         [Required]
-        public string KDA { get; set; } = string.Empty; // "2.14:1 KDA"
+        public string KDA { get; set; } = string.Empty;
         
         [Required]
         public int TeamId { get; set; } // 100 or 200 for team identification
-        
+
         [Required]
         public bool IsMainPlayer { get; set; } = false; // True for the player we searched for
+        
+        public int summoner1Id { get; set; }
+
+        public int summoner2Id { get; set; }
+
+        public int item0 { get; set; }
+        public int item1 { get; set; }
+        public int item2 { get; set; }
+        public int item3 { get; set; }
+        public int item4 { get; set; }
+        public int item5 { get; set; }
+        public int item6 { get; set; }
     }
 }

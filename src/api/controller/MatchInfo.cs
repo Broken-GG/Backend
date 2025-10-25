@@ -242,9 +242,24 @@ namespace api.controller
                             Kills = kills,
                             Deaths = deaths,
                             Assists = assists,
+                            CS = (int)(participant?.totalMinionsKilled ?? 0) + (int)(participant?.neutralMinionsKilled ?? 0),
+                            VisionScore = (int)(participant?.visionScore ?? 0),
                             KDA = kdaText,
                             TeamId = teamId,
-                            IsMainPlayer = isMainPlayer
+                            IsMainPlayer = isMainPlayer,
+
+                            // Summoner Spells
+                            summoner1Id = participant.summoner1Id,
+                            summoner2Id = participant.summoner2Id,
+
+                            // Items
+                            item0 = participant.item0,
+                            item1 = participant.item1,
+                            item2 = participant.item2,
+                            item3 = participant.item3,
+                            item4 = participant.item4,
+                            item5 = participant.item5,
+                            item6 = participant.item6
                         });
                         
                         Console.WriteLine($"👤 Player: {summonerName} | Champion: {championName} | KDA: {kdaText} | Team: {teamId} | Main: {isMainPlayer}");
