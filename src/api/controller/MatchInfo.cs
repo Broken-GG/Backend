@@ -19,12 +19,23 @@ namespace api.controller
         }
 
         [HttpGet("{puuid}")]
-        public async Task<ActionResult<MatchSummary[]>> GetMatchInfo(string puuid)
+        public async Task<ActionResult<MatchSummary[]>> GetMatchInfo(string puuid, [FromQuery] int start = 0, [FromQuery] int count = 10)
         {
             try
             {
-                // Step 1: Get match IDs for the PUUID (last 10 matches)
-                var matchIdsJson = await _riotApi.GetMatchByPUUID(puuid);
+                // Validate parameters
+                if (start < 0)
+                {
+                    return BadRequest("Start index cannot be negative");
+                }
+                
+                if (count < 1 || count > 100)
+                {
+                    return BadRequest("Count must be between 1 and 100");
+                }
+
+                // Step 1: Get match IDs for the PUUID with pagination
+                var matchIdsJson = await _riotApi.GetMatchByPUUID(puuid, start, count);
                 
                 if (string.IsNullOrEmpty(matchIdsJson) || matchIdsJson == "[]")
                 {
@@ -39,13 +50,12 @@ namespace api.controller
                     return NotFound($"No matches found for PUUID '{puuid}'");
                 }
 
-                // Step 3: Get details for the last 10 matches (or however many are available)
+                // Step 3: Get details for all returned matches
                 var matchSummaries = new List<MatchSummary>();
-                var matchesToProcess = Math.Min(10, matchIds.Length); // Take up to 10 matches
                 
-                // Console.WriteLine($"🎯 Processing {matchesToProcess} matches for PUUID: {puuid}");
+                // Console.WriteLine($"🎯 Processing {matchIds.Length} matches for PUUID: {puuid}");
                 
-                for (int i = 0; i < matchesToProcess; i++)
+                for (int i = 0; i < matchIds.Length; i++)
                 {
                     try
                     {
@@ -88,10 +98,21 @@ namespace api.controller
             }
         }
         [HttpGet("summoner/{summonerName}/{tagline}")]
-        public async Task<ActionResult<MatchSummary[]>> GetMatchInfoBySummoner(string summonerName, string tagline)
+        public async Task<ActionResult<MatchSummary[]>> GetMatchInfoBySummoner(string summonerName, string tagline, [FromQuery] int start = 0, [FromQuery] int count = 10)
         {
             try
             {
+                // Validate parameters
+                if (start < 0)
+                {
+                    return BadRequest("Start index cannot be negative");
+                }
+                
+                if (count < 1 || count > 100)
+                {
+                    return BadRequest("Count must be between 1 and 100");
+                }
+
                 // Step 1: Get PUUID using summoner name and tagline (keep it internal for security)
                 var puuidData = await _riotApi.GetPUUIDBySummonerNameAndTagline(summonerName, tagline);
                 var puuidAndNameInfo = DeserializePUUIDInfo(puuidData);
@@ -101,8 +122,8 @@ namespace api.controller
                     return NotFound($"Summoner '{summonerName}#{tagline}' not found");
                 }
 
-                // Step 2: Get match IDs for the PUUID (last 10 matches)
-                var matchIdsJson = await _riotApi.GetMatchByPUUID(puuidAndNameInfo.PUUID);
+                // Step 2: Get match IDs for the PUUID with pagination
+                var matchIdsJson = await _riotApi.GetMatchByPUUID(puuidAndNameInfo.PUUID, start, count);
                 
                 if (string.IsNullOrEmpty(matchIdsJson) || matchIdsJson == "[]")
                 {
@@ -117,11 +138,10 @@ namespace api.controller
                     return NotFound($"No matches found for summoner '{summonerName}#{tagline}'");
                 }
 
-                // Step 4: Get details for multiple matches (up to 10)
+                // Step 4: Get details for all returned matches
                 var matchSummaries = new List<MatchSummary>();
-                var matchesToProcess = Math.Min(matchIds.Length, 10); // Limit to 10 matches
                 
-                for (int i = 0; i < matchesToProcess; i++)
+                for (int i = 0; i < matchIds.Length; i++)
                 {
                     try
                     {

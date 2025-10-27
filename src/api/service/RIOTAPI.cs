@@ -68,9 +68,9 @@ namespace api.service
             
             return content;
         }
-        public virtual async Task<string> GetMatchByPUUID(string PUUID)
+        public virtual async Task<string> GetMatchByPUUID(string PUUID, int start = 0, int count = 10)
         {
-            var url = $"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{PUUID}/ids?count=10";
+            var url = $"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{PUUID}/ids?start={start}&count={count}";
             // Console.WriteLine($"🌐 API Call 3: GET {url}");
             
             var request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));

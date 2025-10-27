@@ -392,7 +392,7 @@ namespace api.test
     // Mock class for testing match parsing
     public class MockRiotAPIForMatch : RIOTAPI
     {
-        public override async Task<string> GetMatchByPUUID(string PUUID)
+        public override async Task<string> GetMatchByPUUID(string PUUID, int start = 0, int count = 10)
         {
             await Task.Delay(1); // Simulate async
             return "[\"MOCK_MATCH_123\"]"; // Return mock match ID array
