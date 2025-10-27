@@ -39,7 +39,7 @@ namespace api.controller
             var summonerInfoJson = await _riotApi.GetSummonerByName(puuid);
             
             // USE THE HELPER METHOD INSTEAD OF DIRECT DESERIALIZATION
-            var summonerInfo = DeserializeSummonerInfo(summonerInfoJson);
+            var summonerInfo = await DeserializeSummonerInfo(summonerInfoJson);
 
             if (summonerInfo == null)
             {
@@ -87,7 +87,7 @@ namespace api.controller
         }
     }
 
-    private SummonerInfo DeserializeSummonerInfo(string jsonData)
+    private async Task<SummonerInfo> DeserializeSummonerInfo(string jsonData)
     {
         try
         {
@@ -107,15 +107,17 @@ namespace api.controller
             Console.WriteLine($"🔍 Profile Icon ID: {profileIconId}");
             Console.WriteLine($"🔍 Summoner Level: {summonerLevel}");
             
+            // Get latest Data Dragon version
+            var version = await ChampionDataService.GetCurrentVersionAsync();
             var profileIconUrl = string.Empty;
             
             if (profileIconId > 0)
             {
-                profileIconUrl = $"https://ddragon.leagueoflegends.com/cdn/14.20.1/img/profileicon/{profileIconId}.png";
+                profileIconUrl = $"https://ddragon.leagueoflegends.com/cdn/{version}/img/profileicon/{profileIconId}.png";
             }
             else
             {
-                profileIconUrl = "https://ddragon.leagueoflegends.com/cdn/14.20.1/img/profileicon/0.png";
+                profileIconUrl = $"https://ddragon.leagueoflegends.com/cdn/{version}/img/profileicon/0.png";
             }
             
             Console.WriteLine($"🔍 Profile Icon URL: {profileIconUrl}");
@@ -133,6 +135,10 @@ namespace api.controller
         catch (Exception ex)
         {
             Console.WriteLine($"❌ Error deserializing summoner info: {ex.Message}");
+            
+            // Get latest Data Dragon version for fallback
+            var version = await ChampionDataService.GetCurrentVersionAsync();
+            
             // Return placeholder if deserialization fails
             return new SummonerInfo
             {
@@ -140,7 +146,7 @@ namespace api.controller
                 Tagline = "ExampleTagline",
                 Level = 30,
                 Region = "EU",
-                ProfileIconUrl = "https://ddragon.leagueoflegends.com/cdn/14.20.1/img/profileicon/0.png"
+                ProfileIconUrl = $"https://ddragon.leagueoflegends.com/cdn/{version}/img/profileicon/0.png"
             };
         }
     }

@@ -63,7 +63,7 @@ namespace api.controller
                         // Line($"📊 Processing match {i + 1}/{matchesToProcess}: {matchId}");
                         
                         var matchDetailsJson = await _riotApi.GetMatchDetailsByMatchId(matchId);
-                        var matchSummary = DeserializeMatchSummary(matchDetailsJson, puuid);
+                        var matchSummary = await DeserializeMatchSummary(matchDetailsJson, puuid);
                         
                         if (matchSummary != null)
                         {
@@ -146,7 +146,7 @@ namespace api.controller
                     try
                     {
                         var matchDetailsJson = await _riotApi.GetMatchDetailsByMatchId(matchIds[i]);
-                        var matchSummary = DeserializeMatchSummary(matchDetailsJson, puuidAndNameInfo.PUUID);
+                        var matchSummary = await DeserializeMatchSummary(matchDetailsJson, puuidAndNameInfo.PUUID);
                         
                         if (matchSummary != null)
                         {
@@ -173,7 +173,7 @@ namespace api.controller
             }
         }
 
-        private MatchSummary? DeserializeMatchSummary(string jsonData, string playerPuuid)
+        private async Task<MatchSummary?> DeserializeMatchSummary(string jsonData, string playerPuuid)
         {
             try
             {
@@ -260,12 +260,38 @@ namespace api.controller
                         var kdaRatio = deaths > 0 ? Math.Round((double)(kills + assists) / deaths, 2) : kills + assists;
                         var kdaText = $"{kills}/{deaths}/{assists} ({kdaRatio}:1 KDA)";
                         
-                        // Generate champion icon URL using Data Dragon CDN
+                        // Generate champion icon URL using latest Data Dragon version
+                        var version = await ChampionDataService.GetCurrentVersionAsync();
                         var championIconUrl = championName != "Unknown" 
-                            ? $"https://ddragon.leagueoflegends.com/cdn/14.20.1/img/champion/{championName}.png"
-                            : "https://ddragon.leagueoflegends.com/cdn/14.20.1/img/champion/Unknown.png";
+                            ? $"https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{championName}.png"
+                            : $"https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/Unknown.png";
                         
                         var isMainPlayer = puuid == playerPuuid;
+                        
+                        // Get summoner spell IDs
+                        var summoner1Id = (int)(participant?.summoner1Id ?? 0);
+                        var summoner2Id = (int)(participant?.summoner2Id ?? 0);
+                        
+                        // Get item IDs
+                        var item0 = (int)(participant?.item0 ?? 0);
+                        var item1 = (int)(participant?.item1 ?? 0);
+                        var item2 = (int)(participant?.item2 ?? 0);
+                        var item3 = (int)(participant?.item3 ?? 0);
+                        var item4 = (int)(participant?.item4 ?? 0);
+                        var item5 = (int)(participant?.item5 ?? 0);
+                        var item6 = (int)(participant?.item6 ?? 0);
+                        
+                        // Fetch summoner spell and item URLs
+                        var summoner1Url = await GameDataService.GetSummonerSpellIconUrlAsync(summoner1Id);
+                        var summoner2Url = await GameDataService.GetSummonerSpellIconUrlAsync(summoner2Id);
+                        
+                        var item0Url = await GameDataService.GetItemIconUrlAsync(item0);
+                        var item1Url = await GameDataService.GetItemIconUrlAsync(item1);
+                        var item2Url = await GameDataService.GetItemIconUrlAsync(item2);
+                        var item3Url = await GameDataService.GetItemIconUrlAsync(item3);
+                        var item4Url = await GameDataService.GetItemIconUrlAsync(item4);
+                        var item5Url = await GameDataService.GetItemIconUrlAsync(item5);
+                        var item6Url = await GameDataService.GetItemIconUrlAsync(item6);
                         
                         allPlayers.Add(new PlayerPerformance
                         {
@@ -283,17 +309,28 @@ namespace api.controller
                             IsMainPlayer = isMainPlayer,
 
                             // Summoner Spells
-                            summoner1Id = participant?.summoner1Id ?? 0,
-                            summoner2Id = participant?.summoner2Id ?? 0,
+                            summoner1Id = summoner1Id,
+                            summoner2Id = summoner2Id,
+                            Summoner1ImageUrl = summoner1Url,
+                            Summoner2ImageUrl = summoner2Url,
 
                             // Items
-                            item0 = participant?.item0 ?? 0,
-                            item1 = participant?.item1 ?? 0,
-                            item2 = participant?.item2 ?? 0,
-                            item3 = participant?.item3 ?? 0,
-                            item4 = participant?.item4 ?? 0,
-                            item5 = participant?.item5 ?? 0,
-                            item6 = participant?.item6 ?? 0
+                            item0 = item0,
+                            item1 = item1,
+                            item2 = item2,
+                            item3 = item3,
+                            item4 = item4,
+                            item5 = item5,
+                            item6 = item6,
+                            
+                            // Item URLs
+                            Item0ImageUrl = item0Url,
+                            Item1ImageUrl = item1Url,
+                            Item2ImageUrl = item2Url,
+                            Item3ImageUrl = item3Url,
+                            Item4ImageUrl = item4Url,
+                            Item5ImageUrl = item5Url,
+                            Item6ImageUrl = item6Url
                         });
                         
                         // Console.WriteLine($"👤 Player: {summonerName} | Champion: {championName} | KDA: {kdaText} | Team: {teamId} | Main: {isMainPlayer}");

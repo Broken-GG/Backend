@@ -67,8 +67,11 @@ namespace api.models
         public bool IsMainPlayer { get; set; } = false; // True for the player we searched for
         
         public int summoner1Id { get; set; }
-
         public int summoner2Id { get; set; }
+
+        // Summoner spell image URLs
+        public string Summoner1ImageUrl { get; set; } = string.Empty;
+        public string Summoner2ImageUrl { get; set; } = string.Empty;
 
         public int item0 { get; set; }
         public int item1 { get; set; }
@@ -77,5 +80,14 @@ namespace api.models
         public int item4 { get; set; }
         public int item5 { get; set; }
         public int item6 { get; set; }
+
+        // Item image URLs
+        public string Item0ImageUrl { get; set; } = string.Empty;
+        public string Item1ImageUrl { get; set; } = string.Empty;
+        public string Item2ImageUrl { get; set; } = string.Empty;
+        public string Item3ImageUrl { get; set; } = string.Empty;
+        public string Item4ImageUrl { get; set; } = string.Empty;
+        public string Item5ImageUrl { get; set; } = string.Empty;
+        public string Item6ImageUrl { get; set; } = string.Empty;
     }
 }

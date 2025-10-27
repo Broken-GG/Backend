@@ -10,8 +10,45 @@ namespace api.service
     {
         private static readonly HttpClient _httpClient = new HttpClient();
         private static Dictionary<long, string>? _championIdToKey;
+        private static string? _latestVersion;
         private static readonly object _lock = new object();
-        private const string DataDragonVersion = "14.20.1";
+        private const string FallbackVersion = "14.20.1";
+
+        // Fetch the latest Data Dragon version from Riot's API
+        private static async Task<string> GetLatestVersionAsync()
+        {
+            if (_latestVersion != null)
+            {
+                return _latestVersion;
+            }
+
+            try
+            {
+                var url = "https://ddragon.leagueoflegends.com/api/versions.json";
+                var response = await _httpClient.GetStringAsync(url);
+                var versions = JsonConvert.DeserializeObject<string[]>(response);
+                
+                if (versions != null && versions.Length > 0)
+                {
+                    _latestVersion = versions[0]; // First version is the latest
+                    Console.WriteLine($"✅ Latest Data Dragon version: {_latestVersion}");
+                    return _latestVersion;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️ Failed to fetch latest version, using fallback {FallbackVersion}: {ex.Message}");
+            }
+
+            _latestVersion = FallbackVersion;
+            return _latestVersion;
+        }
+
+        // Public method to get the current version being used
+        public static async Task<string> GetCurrentVersionAsync()
+        {
+            return await GetLatestVersionAsync();
+        }
 
         // Lazy load champion data from Data Dragon API
         private static async Task<Dictionary<long, string>> GetChampionMappingAsync()
@@ -29,7 +66,8 @@ namespace api.service
                 }
 
                 // Fetch champion data from Data Dragon
-                var url = $"https://ddragon.leagueoflegends.com/cdn/{DataDragonVersion}/data/en_US/champion.json";
+                var version = GetLatestVersionAsync().Result;
+                var url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
                 
                 try
                 {
@@ -75,8 +113,9 @@ namespace api.service
             return mapping.TryGetValue(championId, out var name) ? name : "Unknown";
         }
 
-        public static async Task<string> GetChampionIconUrlAsync(long championId, string version = DataDragonVersion)
+        public static async Task<string> GetChampionIconUrlAsync(long championId, string? version = null)
         {
+            version ??= await GetLatestVersionAsync();
             var championName = await GetChampionNameByIdAsync(championId);
             if (championName == "Unknown")
             {
@@ -85,8 +124,9 @@ namespace api.service
             return $"https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{championName}.png";
         }
 
-        public static async Task<(string Name, string IconUrl)> GetChampionDataAsync(long championId, string version = DataDragonVersion)
+        public static async Task<(string Name, string IconUrl)> GetChampionDataAsync(long championId, string? version = null)
         {
+            version ??= await GetLatestVersionAsync();
             var name = await GetChampionNameByIdAsync(championId);
             var iconUrl = await GetChampionIconUrlAsync(championId, version);
             return (name, iconUrl);
