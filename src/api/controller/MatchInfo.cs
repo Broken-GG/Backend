@@ -216,6 +216,19 @@ namespace api.controller
                         {
                             summonerName = "Unknown Player";
                         }
+                        var tagLine = "";
+                        if (!string.IsNullOrEmpty(participant?.riotIdTagline?.ToString()))
+                        {
+                            tagLine = participant?.riotIdTagline?.ToString() ?? "";
+                        }
+                        else if (!string.IsNullOrEmpty(participant?.summonerTagline?.ToString()))
+                        {
+                            tagLine = participant?.summonerTagline?.ToString() ?? "";
+                        }
+                        else
+                        {
+                            tagLine = "Unknown Tagline";
+                        }
                         
                         var championName = participant?.championName?.ToString() ?? "Unknown";
                         var kills = (int)(participant?.kills ?? 0);
@@ -237,6 +250,7 @@ namespace api.controller
                         allPlayers.Add(new PlayerPerformance
                         {
                             SummonerName = summonerName,
+                            Tagline = tagLine,
                             ChampionName = championName,
                             ChampionImageUrl = championIconUrl,
                             Kills = kills,

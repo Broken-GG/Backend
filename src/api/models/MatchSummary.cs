@@ -32,6 +32,9 @@ namespace api.models
     {
         [Required]
         public string SummonerName { get; set; } = string.Empty;
+
+        [Required]
+        public string Tagline { get; set; } = string.Empty;
         
         [Required]
         public string ChampionName { get; set; } = string.Empty;
