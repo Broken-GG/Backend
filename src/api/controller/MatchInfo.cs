@@ -255,6 +255,7 @@ namespace api.controller
                         var deaths = (int)(participant?.deaths ?? 0);
                         var assists = (int)(participant?.assists ?? 0);
                         var teamId = (int)(participant?.teamId ?? 0);
+                        var teamPosition = participant?.teamPosition?.ToString() ?? "Unknown";
                         
                         // Calculate KDA ratio like op.gg (K+A)/D
                         var kdaRatio = deaths > 0 ? Math.Round((double)(kills + assists) / deaths, 2) : kills + assists;
@@ -302,6 +303,7 @@ namespace api.controller
                             Kills = kills,
                             Deaths = deaths,
                             Assists = assists,
+                            TeamPosition = teamPosition,
                             CS = (int)(participant?.totalMinionsKilled ?? 0) + (int)(participant?.neutralMinionsKilled ?? 0),
                             VisionScore = (int)(participant?.visionScore ?? 0),
                             KDA = kdaText,
@@ -322,7 +324,7 @@ namespace api.controller
                             item4 = item4,
                             item5 = item5,
                             item6 = item6,
-                            
+
                             // Item URLs
                             Item0ImageUrl = item0Url,
                             Item1ImageUrl = item1Url,

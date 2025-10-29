@@ -63,6 +63,9 @@ namespace api.models
         [Required]
         public int TeamId { get; set; } // 100 or 200 for team identification
 
+        public string TeamPosition { get; set; } = string.Empty;
+
+
         [Required]
         public bool IsMainPlayer { get; set; } = false; // True for the player we searched for
         
