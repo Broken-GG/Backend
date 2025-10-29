@@ -6,16 +6,24 @@ using Newtonsoft.Json.Linq;
 
 namespace api.service
 {
-    public class ChampionDataService
+    public interface IChampionDataService
     {
-        private static readonly HttpClient _httpClient = new HttpClient();
-        private static Dictionary<long, string>? _championIdToKey;
-        private static string? _latestVersion;
-        private static readonly object _lock = new object();
+        Task<string> GetCurrentVersionAsync();
+        Task<string> GetChampionNameByIdAsync(long championId);
+        Task<string> GetChampionIconUrlAsync(long championId, string? version = null);
+        Task<(string Name, string IconUrl)> GetChampionDataAsync(long championId, string? version = null);
+    }
+
+    public class ChampionDataService : IChampionDataService
+    {
+        private readonly HttpClient _httpClient = new HttpClient();
+        private Dictionary<long, string>? _championIdToKey;
+        private string? _latestVersion;
+        private readonly object _lock = new object();
         private const string FallbackVersion = "14.20.1";
 
         // Fetch the latest Data Dragon version from Riot's API
-        private static async Task<string> GetLatestVersionAsync()
+        private async Task<string> GetLatestVersionAsync()
         {
             if (_latestVersion != null)
             {
@@ -45,13 +53,13 @@ namespace api.service
         }
 
         // Public method to get the current version being used
-        public static async Task<string> GetCurrentVersionAsync()
+        public async Task<string> GetCurrentVersionAsync()
         {
             return await GetLatestVersionAsync();
         }
 
         // Lazy load champion data from Data Dragon API
-        private static async Task<Dictionary<long, string>> GetChampionMappingAsync()
+        private async Task<Dictionary<long, string>> GetChampionMappingAsync()
         {
             if (_championIdToKey != null)
             {
@@ -107,13 +115,13 @@ namespace api.service
             }
         }
 
-        public static async Task<string> GetChampionNameByIdAsync(long championId)
+        public async Task<string> GetChampionNameByIdAsync(long championId)
         {
             var mapping = await GetChampionMappingAsync();
             return mapping.TryGetValue(championId, out var name) ? name : "Unknown";
         }
 
-        public static async Task<string> GetChampionIconUrlAsync(long championId, string? version = null)
+        public async Task<string> GetChampionIconUrlAsync(long championId, string? version = null)
         {
             version ??= await GetLatestVersionAsync();
             var championName = await GetChampionNameByIdAsync(championId);
@@ -124,7 +132,7 @@ namespace api.service
             return $"https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{championName}.png";
         }
 
-        public static async Task<(string Name, string IconUrl)> GetChampionDataAsync(long championId, string? version = null)
+        public async Task<(string Name, string IconUrl)> GetChampionDataAsync(long championId, string? version = null)
         {
             version ??= await GetLatestVersionAsync();
             var name = await GetChampionNameByIdAsync(championId);

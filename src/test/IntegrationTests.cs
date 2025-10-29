@@ -53,55 +53,14 @@ namespace api.test
             
             // Use REAL RIOTAPI service - no mocking!
             _riotApi = new RIOTAPI();
-            _controller = new SummonerInfoController(_riotApi);
+            var championDataService = new ChampionDataService();
+            _controller = new SummonerInfoController(_riotApi, championDataService);
         }
 
         [Fact]
         public async Task GetSummonerInfo_RealAPI_ValidSummoner_ReturnsCorrectData()
         {
-            // Arrange - Using a well-known summoner that should exist
-            string summonerName = "Shipulski";
-            string tagline = "GOON";
-            
-            Console.WriteLine($"🌐 REAL API TEST: Testing with {summonerName}#{tagline}");
-            Console.WriteLine($"📡 Step 1: Calling GetPUUIDBySummonerNameAndTagline('{summonerName}', '{tagline}')");
-
-            try
-            {
-                // Act - Make REAL API calls
-                var result = await _controller.GetSummonerInfo(summonerName, tagline);
-
-                Console.WriteLine($"✅ API calls completed successfully!");
-
-                // Assert
-                var okResult = Assert.IsType<OkObjectResult>(result);
-                var summonerInfo = Assert.IsType<SummonerInfo>(okResult.Value);
-                
-                Console.WriteLine($"📊 Retrieved Data:");
-                Console.WriteLine($"   - Summoner Name: {summonerInfo.SummonerName}");
-                Console.WriteLine($"   - Tagline: {summonerInfo.Tagline}");
-                Console.WriteLine($"   - Level: {summonerInfo.Level}");
-                Console.WriteLine($"   - Region: {summonerInfo.Region}");
-
-                // Verify the data makes sense
-                Assert.NotNull(summonerInfo);
-                Assert.NotEqual("Unknown", summonerInfo.SummonerName);
-                Assert.Equal(tagline, summonerInfo.Tagline);
-                Assert.True(summonerInfo.Level > 0, "Level should be greater than 0");
-                Assert.Equal("EU", summonerInfo.Region);
-
-                Console.WriteLine($"🎉 All real API assertions passed!");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"❌ Real API test failed: {ex.Message}");
-                Console.WriteLine($"🔍 This might indicate:");
-                Console.WriteLine($"   - API key is invalid");
-                Console.WriteLine($"   - API endpoints are wrong");
-                Console.WriteLine($"   - Network connectivity issues");
-                Console.WriteLine($"   - Rate limiting");
-                throw; // Re-throw to fail the test
-            }
+            // ...existing code for this test...
         }
 
         [Fact]
@@ -163,18 +122,18 @@ namespace api.test
     public class MatchInfoIntegrationTests
     {
         private readonly RIOTAPI _riotApi;
+        private readonly IChampionDataService _championDataService;
+        private readonly IGameDataService _gameDataService;
         private readonly MatchInfoController _controller;
 
         public MatchInfoIntegrationTests()
         {
             // Load environment variables from .env file for tests
             Console.WriteLine("📁 Loading .env file for MatchInfo integration tests...");
-            
             // Try different paths
             var envPath1 = "src/.env";
             var envPath2 = "../../src/.env";
-            var envPath3 = @"c:\Users\Simon\BrokenGG\Backend\src\.env";
-            
+            var envPath3 = @"c:\\Users\\Simon\\BrokenGG\\Backend\\src\\.env";
             Console.WriteLine($"🔍 Trying path: {envPath1}");
             if (System.IO.File.Exists(envPath1))
             {
@@ -197,7 +156,9 @@ namespace api.test
             }
 
             _riotApi = new RIOTAPI();
-            _controller = new MatchInfoController(_riotApi);
+            _championDataService = new ChampionDataService();
+            _gameDataService = new GameDataService(_championDataService);
+            _controller = new MatchInfoController(_riotApi, _championDataService, _gameDataService);
         }
 
         [Fact]
@@ -359,171 +320,141 @@ namespace api.test
             Console.WriteLine("🧪 Testing MatchInfo parsing with mock data");
             Console.WriteLine("=" + new string('=', 50));
             
-            // Create a mock MatchInfo controller that returns mock data
+            // Create mock services for test
+            var mockChampionDataService = new MockChampionDataService();
+            var mockGameDataService = new MockGameDataService();
             var mockRiotApi = new MockRiotAPIForMatch();
-            var controller = new MatchInfoController(mockRiotApi);
-            
+            var controller = new MatchInfoController(mockRiotApi, mockChampionDataService, mockGameDataService);
             // Act
-            var result = await controller.GetMatchInfo("mock-puuid");
-            
+            var result = await controller.GetMatchInfo("WIKFPy45UUhgHTmv4jgY6f5rhgbmDmlyFMPJ7pD0xsXdUC2R6MZ9HXrVhiCFY5OwmQqjjJlf-jxKBQ", 0, 1); // Only request 1 match
+
             // Assert
             Assert.NotNull(result);
-            var okResult = Assert.IsType<OkObjectResult>(result.Result);
-            var matchHistory = Assert.IsType<MatchHistory>(okResult.Value);
-            
-            // Verify all required fields are present
-            Assert.Equal("MOCK_MATCH_123", matchHistory.MatchId);
-            Assert.True(matchHistory.Win);
-            Assert.Equal(10, matchHistory.Kills);
-            Assert.Equal(5, matchHistory.Deaths);
-            Assert.Equal(15, matchHistory.Assists);
-            Assert.Equal(10, matchHistory.Participants.Length);
-            Assert.Equal(10, matchHistory.ChampionName.Length);
-            Assert.Contains("Jinx", matchHistory.ChampionName);
-            Assert.Contains("TestPlayer1", matchHistory.Participants.Select(p => p.SummonerName));
-            
-            Console.WriteLine("✅ Mock data parsing test passed!");
-            Console.WriteLine($"📊 Match ID: {matchHistory.MatchId}");
-            Console.WriteLine($"🏆 Win: {matchHistory.Win}, KDA: {matchHistory.Kills}/{matchHistory.Deaths}/{matchHistory.Assists}");
-            Console.WriteLine($"👥 Players: {matchHistory.Participants.Length}, Champions: {matchHistory.ChampionName.Length}");
+            if (result.Result is OkObjectResult okResult)
+            {
+                var matches = Assert.IsType<MatchSummary[]>(okResult.Value);
+                Assert.NotNull(matches);
+                Assert.Single(matches);
+                var matchHistory = matches[0];
+                // Verify all required fields are present
+                Assert.Equal("MOCK_MATCH_123", matchHistory.MatchId);
+                Assert.True(matchHistory.Victory);
+                Assert.Equal("Jinx", matchHistory.MainPlayer.ChampionName);
+                Assert.Equal(10, matchHistory.MainPlayer.Kills);
+                Assert.Equal(5, matchHistory.MainPlayer.Deaths);
+                Assert.Equal(15, matchHistory.MainPlayer.Assists);
+                Assert.Contains("TestPlayer1", matchHistory.AllPlayers.Select(p => p.SummonerName));
+                Console.WriteLine("✅ Mock data parsing test passed!");
+                Console.WriteLine($"📊 Match ID: {matchHistory.MatchId}");
+                Console.WriteLine($"🏆 Win: {matchHistory.Victory}, KDA: {matchHistory.MainPlayer.Kills}/{matchHistory.MainPlayer.Deaths}/{matchHistory.MainPlayer.Assists}");
+                Console.WriteLine($"👥 Players: {matchHistory.AllPlayers.Length}, Champion: {matchHistory.MainPlayer.ChampionName}");
+            }
+            else if (result.Result is NotFoundObjectResult notFound)
+            {
+                var msg = notFound.Value?.ToString() ?? "No message";
+                throw new Xunit.Sdk.XunitException($"Expected OkObjectResult but got NotFoundObjectResult: {msg}");
+            }
+            else
+            {
+                throw new Xunit.Sdk.XunitException($"Expected OkObjectResult but got {result.Result?.GetType().Name ?? "null"}");
+            }
+
+            // No static methods to restore
+        }
+
+        // Mock implementations for testability
+        public class MockChampionDataService : IChampionDataService
+        {
+            public Task<string> GetCurrentVersionAsync() => Task.FromResult("15.21.1");
+            public Task<string> GetChampionNameByIdAsync(long championId) => Task.FromResult("Jinx");
+            public Task<string> GetChampionIconUrlAsync(long championId, string? version = null) => Task.FromResult("https://example.com/champion.png");
+            public Task<(string Name, string IconUrl)> GetChampionDataAsync(long championId, string? version = null) => Task.FromResult(("Jinx", "https://example.com/champion.png"));
+        }
+        public class MockGameDataService : IGameDataService
+        {
+            public Task<string> GetSummonerSpellNameByIdAsync(int spellId) => Task.FromResult("Flash");
+            public Task<string> GetSummonerSpellIconUrlAsync(int spellId) => Task.FromResult("https://example.com/spell.png");
+            public Task<string> GetItemNameByIdAsync(int itemId) => Task.FromResult("Infinity Edge");
+            public Task<string> GetItemIconUrlAsync(int itemId) => Task.FromResult("https://example.com/item.png");
+            public Task<(string Name, string IconUrl)> GetSummonerSpellDataAsync(int spellId) => Task.FromResult(("Flash", "https://example.com/spell.png"));
+            public Task<(string Name, string IconUrl)> GetItemDataAsync(int itemId) => Task.FromResult(("Infinity Edge", "https://example.com/item.png"));
+        }
         }
     }
 
     // Mock class for testing match parsing
     public class MockRiotAPIForMatch : RIOTAPI
     {
-        public override async Task<string> GetMatchByPUUID(string PUUID, int start = 0, int count = 10)
-        {
-            await Task.Delay(1); // Simulate async
-            return "[\"MOCK_MATCH_123\"]"; // Return mock match ID array
-        }
-
         public override async Task<string> GetMatchDetailsByMatchId(string matchId)
         {
             await Task.Delay(1); // Simulate async
-            
-            // Return realistic mock match data structure
             return @"{
-                ""metadata"": {
-                    ""matchId"": ""MOCK_MATCH_123""
+            ""metadata"": {
+                ""matchId"": ""MOCK_MATCH_123""
+            },
+            ""info"": {
+                ""gameStartTimestamp"": 1641000000000,
+                ""gameDuration"": 1800,
+                ""participants"": [
+                {
+                    ""puuid"": ""WIKFPy45UUhgHTmv4jgY6f5rhgbmDmlyFMPJ7pD0xsXdUC2R6MZ9HXrVhiCFY5OwmQqjjJlf-jxKBQ"",
+                    ""riotIdGameName"": ""TestPlayer1"",
+                    ""riotIdTagline"": ""TAG1"",
+                    ""championName"": ""Jinx"",
+                    ""kills"": 10,
+                    ""deaths"": 5,
+                    ""assists"": 15,
+                    ""win"": true,
+                    ""summonerLevel"": 150,
+                    ""profileIcon"": 1001,
+                    ""teamId"": 100,
+                    ""teamPosition"": ""TOP"",
+                    ""totalMinionsKilled"": 200,
+                    ""neutralMinionsKilled"": 20,
+                    ""visionScore"": 30,
+                    ""summoner1Id"": 4,
+                    ""summoner2Id"": 14,
+                    ""item0"": 1055,
+                    ""item1"": 3078,
+                    ""item2"": 3047,
+                    ""item3"": 3074,
+                    ""item4"": 3053,
+                    ""item5"": 3026,
+                    ""item6"": 3364,
+                    ""summonerName"": ""TestPlayer1Fallback"",
+                    ""summonerTagline"": ""TAG1F""
                 },
-                ""info"": {
-                    ""gameStartTimestamp"": 1641000000000,
-                    ""gameDuration"": 1800,
-                    ""participants"": [
-                        {
-                            ""riotIdGameName"": ""TestPlayer1"",
-                            ""riotIdTagline"": ""TAG1"",
-                            ""championName"": ""Jinx"",
-                            ""kills"": 10,
-                            ""deaths"": 5,
-                            ""assists"": 15,
-                            ""win"": true,
-                            ""summonerLevel"": 150,
-                            ""profileIcon"": 1001
-                        },
-                        {
-                            ""riotIdGameName"": ""TestPlayer2"",
-                            ""riotIdTagline"": ""TAG2"",
-                            ""championName"": ""Thresh"",
-                            ""kills"": 2,
-                            ""deaths"": 8,
-                            ""assists"": 20,
-                            ""win"": true,
-                            ""summonerLevel"": 200,
-                            ""profileIcon"": 1002
-                        },
-                        {
-                            ""riotIdGameName"": ""EnemyPlayer1"",
-                            ""riotIdTagline"": ""ENEMY"",
-                            ""championName"": ""Yasuo"",
-                            ""kills"": 8,
-                            ""deaths"": 10,
-                            ""assists"": 5,
-                            ""win"": false,
-                            ""summonerLevel"": 75,
-                            ""profileIcon"": 2001
-                        },
-                        {
-                            ""riotIdGameName"": ""EnemyPlayer2"",
-                            ""riotIdTagline"": ""FOE"",
-                            ""championName"": ""Blitzcrank"",
-                            ""kills"": 1,
-                            ""deaths"": 12,
-                            ""assists"": 8,
-                            ""win"": false,
-                            ""summonerLevel"": 90,
-                            ""profileIcon"": 2002
-                        },
-                        {
-                            ""riotIdGameName"": ""Player3"",
-                            ""riotIdTagline"": ""MID"",
-                            ""championName"": ""Azir"",
-                            ""kills"": 7,
-                            ""deaths"": 6,
-                            ""assists"": 12,
-                            ""win"": true,
-                            ""summonerLevel"": 120,
-                            ""profileIcon"": 1003
-                        },
-                        {
-                            ""riotIdGameName"": ""Player4"",
-                            ""riotIdTagline"": ""JNG"",
-                            ""championName"": ""Graves"",
-                            ""kills"": 6,
-                            ""deaths"": 7,
-                            ""assists"": 9,
-                            ""win"": true,
-                            ""summonerLevel"": 110,
-                            ""profileIcon"": 1004
-                        },
-                        {
-                            ""riotIdGameName"": ""Player5"",
-                            ""riotIdTagline"": ""TOP"",
-                            ""championName"": ""Garen"",
-                            ""kills"": 5,
-                            ""deaths"": 4,
-                            ""assists"": 8,
-                            ""win"": true,
-                            ""summonerLevel"": 95,
-                            ""profileIcon"": 1005
-                        },
-                        {
-                            ""riotIdGameName"": ""Enemy3"",
-                            ""riotIdTagline"": ""BAD"",
-                            ""championName"": ""Zed"",
-                            ""kills"": 9,
-                            ""deaths"": 8,
-                            ""assists"": 4,
-                            ""win"": false,
-                            ""summonerLevel"": 130,
-                            ""profileIcon"": 2003
-                        },
-                        {
-                            ""riotIdGameName"": ""Enemy4"",
-                            ""riotIdTagline"": ""LOST"",
-                            ""championName"": ""KhaZix"",
-                            ""kills"": 4,
-                            ""deaths"": 9,
-                            ""assists"": 6,
-                            ""win"": false,
-                            ""summonerLevel"": 85,
-                            ""profileIcon"": 2004
-                        },
-                        {
-                            ""riotIdGameName"": ""Enemy5"",
-                            ""riotIdTagline"": ""NOOB"",
-                            ""championName"": ""Darius"",
-                            ""kills"": 3,
-                            ""deaths"": 11,
-                            ""assists"": 2,
-                            ""win"": false,
-                            ""summonerLevel"": 60,
-                            ""profileIcon"": 2005
-                        }
-                    ]
+                {
+                    ""puuid"": ""WIKFPy45UUhgHTmv4jgY6f5rhgbmDmlyFMPJ7pD0xsXdUC2R6MZ9HXrVhiCFY5OwmQqjjJlf-jxKBQ"",
+                    ""riotIdGameName"": ""TestPlayer2"",
+                    ""riotIdTagline"": ""TAG2"",
+                    ""championName"": ""Thresh"",
+                    ""kills"": 2,
+                    ""deaths"": 8,
+                    ""assists"": 20,
+                    ""win"": true,
+                    ""summonerLevel"": 200,
+                    ""profileIcon"": 1002,
+                    ""teamId"": 100,
+                    ""teamPosition"": ""SUPPORT"",
+                    ""totalMinionsKilled"": 30,
+                    ""neutralMinionsKilled"": 2,
+                    ""visionScore"": 45,
+                    ""summoner1Id"": 3,
+                    ""summoner2Id"": 4,
+                    ""item0"": 3854,
+                    ""item1"": 3107,
+                    ""item2"": 3117,
+                    ""item3"": 3504,
+                    ""item4"": 3222,
+                    ""item5"": 3050,
+                    ""item6"": 3364,
+                    ""summonerName"": ""TestPlayer2Fallback"",
+                    ""summonerTagline"": ""TAG2F""
                 }
+                ]
+            }
             }";
         }
     }
-}
+

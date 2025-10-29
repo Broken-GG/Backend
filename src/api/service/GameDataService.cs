@@ -6,15 +6,25 @@ using Newtonsoft.Json.Linq;
 
 namespace api.service
 {
-    public class GameDataService
+    public interface IGameDataService
     {
-        private static readonly HttpClient _httpClient = new HttpClient();
-        private static Dictionary<int, string>? _summonerSpellIdToKey;
-        private static Dictionary<int, string>? _itemIdToName;
-        private static readonly object _lock = new object();
+        Task<string> GetSummonerSpellNameByIdAsync(int spellId);
+        Task<string> GetSummonerSpellIconUrlAsync(int spellId);
+        Task<string> GetItemNameByIdAsync(int itemId);
+        Task<string> GetItemIconUrlAsync(int itemId);
+        Task<(string Name, string IconUrl)> GetSummonerSpellDataAsync(int spellId);
+        Task<(string Name, string IconUrl)> GetItemDataAsync(int itemId);
+    }
+
+    public class GameDataService : IGameDataService
+    {
+        private readonly HttpClient _httpClient = new HttpClient();
+        private Dictionary<int, string>? _summonerSpellIdToKey;
+        private Dictionary<int, string>? _itemIdToName;
+        private readonly object _lock = new object();
 
         // Fetch summoner spell mapping from Data Dragon
-        private static async Task<Dictionary<int, string>> GetSummonerSpellMappingAsync()
+        private async Task<Dictionary<int, string>> GetSummonerSpellMappingAsync()
         {
             if (_summonerSpellIdToKey != null)
             {
@@ -30,7 +40,8 @@ namespace api.service
 
                 try
                 {
-                    var version = ChampionDataService.GetCurrentVersionAsync().Result;
+                    // For version, you will need to inject IChampionDataService in the constructor for DI
+                    var version = _championDataService.GetCurrentVersionAsync().Result;
                     var url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/summoner.json";
                     
                     var response = _httpClient.GetStringAsync(url).Result;
@@ -69,7 +80,7 @@ namespace api.service
         }
 
         // Fetch item mapping from Data Dragon
-        private static async Task<Dictionary<int, string>> GetItemMappingAsync()
+        private async Task<Dictionary<int, string>> GetItemMappingAsync()
         {
             if (_itemIdToName != null)
             {
@@ -85,7 +96,7 @@ namespace api.service
 
                 try
                 {
-                    var version = ChampionDataService.GetCurrentVersionAsync().Result;
+                    var version = _championDataService.GetCurrentVersionAsync().Result;
                     var url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/item.json";
                     
                     var response = _httpClient.GetStringAsync(url).Result;
@@ -120,8 +131,15 @@ namespace api.service
             }
         }
 
+        private readonly IChampionDataService _championDataService;
+
+        public GameDataService(IChampionDataService championDataService)
+        {
+            _championDataService = championDataService;
+        }
+
         // Get summoner spell name by ID
-        public static async Task<string> GetSummonerSpellNameByIdAsync(int spellId)
+        public async Task<string> GetSummonerSpellNameByIdAsync(int spellId)
         {
             if (spellId == 0)
             {
@@ -133,14 +151,14 @@ namespace api.service
         }
 
         // Get summoner spell icon URL by ID
-        public static async Task<string> GetSummonerSpellIconUrlAsync(int spellId)
+        public async Task<string> GetSummonerSpellIconUrlAsync(int spellId)
         {
             if (spellId == 0)
             {
                 return "";
             }
 
-            var version = await ChampionDataService.GetCurrentVersionAsync();
+            var version = await _championDataService.GetCurrentVersionAsync();
             var spellName = await GetSummonerSpellNameByIdAsync(spellId);
             
             if (spellName == "Unknown" || spellName == "None")
@@ -152,7 +170,7 @@ namespace api.service
         }
 
         // Get item name by ID
-        public static async Task<string> GetItemNameByIdAsync(int itemId)
+        public async Task<string> GetItemNameByIdAsync(int itemId)
         {
             if (itemId == 0)
             {
@@ -164,19 +182,19 @@ namespace api.service
         }
 
         // Get item icon URL by ID
-        public static async Task<string> GetItemIconUrlAsync(int itemId)
+        public async Task<string> GetItemIconUrlAsync(int itemId)
         {
             if (itemId == 0)
             {
                 return ""; // Empty slot
             }
 
-            var version = await ChampionDataService.GetCurrentVersionAsync();
+            var version = await _championDataService.GetCurrentVersionAsync();
             return $"https://ddragon.leagueoflegends.com/cdn/{version}/img/item/{itemId}.png";
         }
 
         // Get complete summoner spell data (name and icon URL)
-        public static async Task<(string Name, string IconUrl)> GetSummonerSpellDataAsync(int spellId)
+        public async Task<(string Name, string IconUrl)> GetSummonerSpellDataAsync(int spellId)
         {
             var name = await GetSummonerSpellNameByIdAsync(spellId);
             var iconUrl = await GetSummonerSpellIconUrlAsync(spellId);
@@ -184,7 +202,7 @@ namespace api.service
         }
 
         // Get complete item data (name and icon URL)
-        public static async Task<(string Name, string IconUrl)> GetItemDataAsync(int itemId)
+        public async Task<(string Name, string IconUrl)> GetItemDataAsync(int itemId)
         {
             var name = await GetItemNameByIdAsync(itemId);
             var iconUrl = await GetItemIconUrlAsync(itemId);

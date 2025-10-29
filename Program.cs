@@ -30,6 +30,9 @@ builder.Services.AddCors(options =>
 
 // Register your services
 builder.Services.AddScoped<RIOTAPI>();
+builder.Services.AddScoped<IChampionDataService, ChampionDataService>();
+builder.Services.AddScoped<IGameDataService, GameDataService>(provider =>
+    new GameDataService(provider.GetRequiredService<IChampionDataService>()));
 
 var app = builder.Build();
 

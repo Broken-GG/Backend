@@ -13,10 +13,14 @@ namespace api.controller
     public class MatchInfoController : ControllerBase
     {
         private readonly RIOTAPI _riotApi;
+        private readonly IChampionDataService _championDataService;
+        private readonly IGameDataService _gameDataService;
 
-        public MatchInfoController(RIOTAPI riotApi)
+        public MatchInfoController(RIOTAPI riotApi, IChampionDataService championDataService, IGameDataService gameDataService)
         {
             _riotApi = riotApi;
+            _championDataService = championDataService;
+            _gameDataService = gameDataService;
         }
 
         [HttpGet("{puuid}")]
@@ -176,6 +180,7 @@ namespace api.controller
 
         private async Task<MatchSummary?> DeserializeMatchSummary(string jsonData, string playerPuuid)
         {
+            Console.WriteLine($"[DEBUG] DeserializeMatchSummary called with playerPuuid: {playerPuuid}");
             try
             {
                 if (string.IsNullOrEmpty(jsonData))
@@ -222,58 +227,35 @@ namespace api.controller
                     foreach (var participant in participants)
                     {
                         var puuid = participant?.puuid?.ToString() ?? "";
-                        
                         // Try multiple sources for summoner name in order of preference
-                        var summonerName = "";
-                        if (!string.IsNullOrEmpty(participant?.riotIdGameName?.ToString()))
-                        {
-                            summonerName = participant?.riotIdGameName?.ToString() ?? "Unknown Player";
-                        }
-                        else if (!string.IsNullOrEmpty(participant?.summonerName?.ToString()))
-                        {
-                            summonerName = participant?.summonerName?.ToString() ?? "Unknown Player";
-                        }
-                        else
-                        {
-                            summonerName = "Unknown Player";
-                        }
-                        var tagLine = "";
-                        if (!string.IsNullOrEmpty(participant?.riotIdTagline?.ToString()))
-                        {
-                            tagLine = participant?.riotIdTagline?.ToString() ?? "";
-                        }
-                        else if (!string.IsNullOrEmpty(participant?.summonerTagline?.ToString()))
-                        {
-                            tagLine = participant?.summonerTagline?.ToString() ?? "";
-                        }
-                        else
-                        {
-                            tagLine = "Unknown Tagline";
-                        }
-                        
+                        var summonerName = !string.IsNullOrEmpty(participant?.riotIdGameName?.ToString())
+                            ? participant?.riotIdGameName?.ToString() ?? "Unknown Player"
+                            : !string.IsNullOrEmpty(participant?.summonerName?.ToString())
+                                ? participant?.summonerName?.ToString() ?? "Unknown Player"
+                                : "Unknown Player";
+                        var tagLine = !string.IsNullOrEmpty(participant?.riotIdTagline?.ToString())
+                            ? participant?.riotIdTagline?.ToString() ?? ""
+                            : !string.IsNullOrEmpty(participant?.summonerTagline?.ToString())
+                                ? participant?.summonerTagline?.ToString() ?? ""
+                                : "Unknown Tagline";
                         var championName = participant?.championName?.ToString() ?? "Unknown";
                         var kills = (int)(participant?.kills ?? 0);
                         var deaths = (int)(participant?.deaths ?? 0);
                         var assists = (int)(participant?.assists ?? 0);
                         var teamId = (int)(participant?.teamId ?? 0);
                         var teamPosition = participant?.teamPosition?.ToString() ?? "Unknown";
-                        
                         // Calculate KDA ratio like op.gg (K+A)/D
                         var kdaRatio = deaths > 0 ? Math.Round((double)(kills + assists) / deaths, 2) : kills + assists;
                         var kdaText = $"{kills}/{deaths}/{assists} ({kdaRatio}:1 KDA)";
-                        
                         // Generate champion icon URL using latest Data Dragon version
-                        var version = await ChampionDataService.GetCurrentVersionAsync();
-                        var championIconUrl = championName != "Unknown" 
+                        var version = await _championDataService.GetCurrentVersionAsync();
+                        var championIconUrl = championName != "Unknown"
                             ? $"https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{championName}.png"
                             : $"https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/Unknown.png";
-                        
                         var isMainPlayer = puuid == playerPuuid;
-                        
                         // Get summoner spell IDs
                         var summoner1Id = (int)(participant?.summoner1Id ?? 0);
                         var summoner2Id = (int)(participant?.summoner2Id ?? 0);
-                        
                         // Get item IDs
                         var item0 = (int)(participant?.item0 ?? 0);
                         var item1 = (int)(participant?.item1 ?? 0);
@@ -282,19 +264,16 @@ namespace api.controller
                         var item4 = (int)(participant?.item4 ?? 0);
                         var item5 = (int)(participant?.item5 ?? 0);
                         var item6 = (int)(participant?.item6 ?? 0);
-                        
                         // Fetch summoner spell and item URLs
-                        var summoner1Url = await GameDataService.GetSummonerSpellIconUrlAsync(summoner1Id);
-                        var summoner2Url = await GameDataService.GetSummonerSpellIconUrlAsync(summoner2Id);
-                        
-                        var item0Url = await GameDataService.GetItemIconUrlAsync(item0);
-                        var item1Url = await GameDataService.GetItemIconUrlAsync(item1);
-                        var item2Url = await GameDataService.GetItemIconUrlAsync(item2);
-                        var item3Url = await GameDataService.GetItemIconUrlAsync(item3);
-                        var item4Url = await GameDataService.GetItemIconUrlAsync(item4);
-                        var item5Url = await GameDataService.GetItemIconUrlAsync(item5);
-                        var item6Url = await GameDataService.GetItemIconUrlAsync(item6);
-                        
+                        var summoner1Url = await _gameDataService.GetSummonerSpellIconUrlAsync(summoner1Id);
+                        var summoner2Url = await _gameDataService.GetSummonerSpellIconUrlAsync(summoner2Id);
+                        var item0Url = await _gameDataService.GetItemIconUrlAsync(item0);
+                        var item1Url = await _gameDataService.GetItemIconUrlAsync(item1);
+                        var item2Url = await _gameDataService.GetItemIconUrlAsync(item2);
+                        var item3Url = await _gameDataService.GetItemIconUrlAsync(item3);
+                        var item4Url = await _gameDataService.GetItemIconUrlAsync(item4);
+                        var item5Url = await _gameDataService.GetItemIconUrlAsync(item5);
+                        var item6Url = await _gameDataService.GetItemIconUrlAsync(item6);
                         allPlayers.Add(new PlayerPerformance
                         {
                             SummonerName = summonerName,
@@ -352,7 +331,7 @@ namespace api.controller
                         {
                             var puuid = participant?.puuid?.ToString() ?? "null";
                             var name = participant?.riotIdGameName?.ToString() ?? participant?.summonerName?.ToString() ?? "Unknown";
-                            // Console.WriteLine($"   - {puuid} ({name})");
+                            Console.WriteLine($"   - {puuid} ({name})");
                         }
                     }
                     return null;

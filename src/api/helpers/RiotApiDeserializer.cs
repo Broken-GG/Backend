@@ -37,7 +37,7 @@ namespace api.helpers
         /// </summary>
         /// <param name="jsonData">JSON string from Riot API</param>
         /// <returns>SummonerInfo object or a default instance if parsing fails</returns>
-        public static async Task<SummonerInfo> DeserializeSummonerInfoAsync(string jsonData)
+        public static async Task<SummonerInfo> DeserializeSummonerInfoAsync(string jsonData, api.service.IChampionDataService championDataService)
         {
             try
             {
@@ -55,7 +55,7 @@ namespace api.helpers
                 Console.WriteLine($"🔍 Summoner Level: {summonerLevel}");
                 
                 // Get latest Data Dragon version
-                var version = await service.ChampionDataService.GetCurrentVersionAsync();
+                var version = await championDataService.GetCurrentVersionAsync();
                 var profileIconUrl = profileIconId > 0
                     ? $"https://ddragon.leagueoflegends.com/cdn/{version}/img/profileicon/{profileIconId}.png"
                     : $"https://ddragon.leagueoflegends.com/cdn/{version}/img/profileicon/0.png";
@@ -77,7 +77,7 @@ namespace api.helpers
                 Console.WriteLine($"❌ Error deserializing summoner info: {ex.Message}");
                 
                 // Get latest Data Dragon version for fallback
-                var version = await service.ChampionDataService.GetCurrentVersionAsync();
+                var version = await championDataService.GetCurrentVersionAsync();
                 
                 // Return placeholder if deserialization fails
                 return new SummonerInfo

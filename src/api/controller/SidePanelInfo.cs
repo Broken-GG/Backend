@@ -12,10 +12,12 @@ namespace api.controller
     public class SidePanelInfoController : ControllerBase
     {
         private readonly RIOTAPI _riotApi;
+        private readonly IChampionDataService _championDataService;
 
-        public SidePanelInfoController(RIOTAPI riotApi)
+        public SidePanelInfoController(RIOTAPI riotApi, IChampionDataService championDataService)
         {
             _riotApi = riotApi;
+            _championDataService = championDataService;
         }
 
         [HttpGet("ranked/{puuid}")]
@@ -56,7 +58,7 @@ namespace api.controller
                 // Populate champion names and icon URLs using the ChampionDataService
                 foreach (var mastery in masteryInfoArray)
                 {
-                    var championData = await ChampionDataService.GetChampionDataAsync(mastery.ChampionId);
+                    var championData = await _championDataService.GetChampionDataAsync(mastery.ChampionId);
                     mastery.ChampionName = championData.Name;
                     mastery.ChampionIconUrl = championData.IconUrl;
                 }

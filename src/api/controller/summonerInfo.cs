@@ -12,10 +12,12 @@ namespace api.controller
     public class SummonerInfoController : ControllerBase
     {
         private readonly RIOTAPI _riotApi;
-     
-        public SummonerInfoController(RIOTAPI riotApi)
+        private readonly IChampionDataService _championDataService;
+
+        public SummonerInfoController(RIOTAPI riotApi, IChampionDataService championDataService)
         {
             _riotApi = riotApi;
+            _championDataService = championDataService;
         }
 
     [HttpGet("{summonerName}/{tagline}")]
@@ -36,7 +38,7 @@ namespace api.controller
             var summonerInfoJson = await _riotApi.GetSummonerByName(puuid);
             
             // Use the helper method for deserialization
-            var summonerInfo = await RiotApiDeserializer.DeserializeSummonerInfoAsync(summonerInfoJson);
+            var summonerInfo = await RiotApiDeserializer.DeserializeSummonerInfoAsync(summonerInfoJson, _championDataService);
 
             if (summonerInfo == null)
             {
