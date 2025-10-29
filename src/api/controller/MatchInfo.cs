@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using api.models;
 using api.service;
+using api.helpers;
 using Newtonsoft.Json;
 using System;
 using System.Threading.Tasks;
@@ -115,15 +116,15 @@ namespace api.controller
 
                 // Step 1: Get PUUID using summoner name and tagline (keep it internal for security)
                 var puuidData = await _riotApi.GetPUUIDBySummonerNameAndTagline(summonerName, tagline);
-                var puuidAndNameInfo = DeserializePUUIDInfo(puuidData);
+                var (puuid, gameName) = RiotApiDeserializer.DeserializePUUIDInfo(puuidData);
                 
-                if (string.IsNullOrEmpty(puuidAndNameInfo.PUUID))
+                if (string.IsNullOrEmpty(puuid))
                 {
                     return NotFound($"Summoner '{summonerName}#{tagline}' not found");
                 }
 
                 // Step 2: Get match IDs for the PUUID with pagination
-                var matchIdsJson = await _riotApi.GetMatchByPUUID(puuidAndNameInfo.PUUID, start, count);
+                var matchIdsJson = await _riotApi.GetMatchByPUUID(puuid, start, count);
                 
                 if (string.IsNullOrEmpty(matchIdsJson) || matchIdsJson == "[]")
                 {
@@ -146,7 +147,7 @@ namespace api.controller
                     try
                     {
                         var matchDetailsJson = await _riotApi.GetMatchDetailsByMatchId(matchIds[i]);
-                        var matchSummary = await DeserializeMatchSummary(matchDetailsJson, puuidAndNameInfo.PUUID);
+                        var matchSummary = await DeserializeMatchSummary(matchDetailsJson, puuid);
                         
                         if (matchSummary != null)
                         {
@@ -397,43 +398,5 @@ namespace api.controller
                 _ => "Custom Game"
             };
         }
-        private (string? PUUID, string? GameName) DeserializePUUIDInfo(string jsonData)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(jsonData))
-                {
-                    return (null, null);
-                }
-
-                var puuidInfo = JsonConvert.DeserializeObject<dynamic>(jsonData);
-                string? puuid = puuidInfo?.puuid;
-                string? gameName = puuidInfo?.gameName;
-
-                return (puuid, gameName);
-            }
-            catch (JsonException)
-            {
-                return (null, null);
-            }
-        }
-        private SummonerInfo DeserializeSummonerInfo(string jsonData)
-        {
-            try
-            {
-                if (string.IsNullOrEmpty(jsonData))
-                {
-                    return new SummonerInfo();
-                }
-
-                var summonerInfo = JsonConvert.DeserializeObject<SummonerInfo>(jsonData);
-                return summonerInfo ?? new SummonerInfo();
-            }
-            catch (JsonException)
-            {
-                return new SummonerInfo();
-            }
-        }
     }
-
 }
