@@ -330,6 +330,7 @@ namespace api.test
 
             // Assert
             Assert.NotNull(result);
+            Console.WriteLine($"🔍 Result Type: {result.Result?.GetType().Name ?? "null"}");
             if (result.Result is OkObjectResult okResult)
             {
                 var matches = Assert.IsType<MatchSummary[]>(okResult.Value);
@@ -352,10 +353,12 @@ namespace api.test
             else if (result.Result is NotFoundObjectResult notFound)
             {
                 var msg = notFound.Value?.ToString() ?? "No message";
+                Console.WriteLine($"❌ Expected OkObjectResult but got NotFoundObjectResult: {msg}");
                 throw new Xunit.Sdk.XunitException($"Expected OkObjectResult but got NotFoundObjectResult: {msg}");
             }
             else
             {
+                Console.WriteLine($"❌ Expected OkObjectResult but got {result.Result?.GetType().Name ?? "null"}");
                 throw new Xunit.Sdk.XunitException($"Expected OkObjectResult but got {result.Result?.GetType().Name ?? "null"}");
             }
 
