@@ -37,6 +37,16 @@ jobs:
         echo "RIOT_MATCH_DETAILS_API_URL=https://europe.api.riotgames.com/lol/match/v5/matches" >> src/.env
         echo "ASPNETCORE_ENVIRONMENT=Development" >> src/.env
     
+    - name: Debug RIOT_API_KEY
+      run: |
+        if [ -z "$RIOT_API_KEY" ]; then
+          echo "RIOT_API_KEY is NOT set in environment!"
+        else
+          echo "RIOT_API_KEY is set in environment (masked)."
+        fi
+      env:
+        RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
+    
     - name: Run tests
       run: dotnet test Backend.csproj --no-build --configuration Release --verbosity normal
       env:
