@@ -23,8 +23,9 @@ WORKDIR /app
 # Copy the published application
 COPY --from=publish /app/publish .
 
-# Copy the .env file into the container
-COPY src/.env src/.env
+# Note: .env file is NOT copied in production/CI/CD
+# Set environment variables via docker-compose or deployment platform instead
+# For local development with .env, mount it as a volume
 
 # Expose port 5000 for the API
 EXPOSE 5000
