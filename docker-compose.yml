@@ -11,9 +11,10 @@ services:
       - "5000:5000"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - RIOT_API_KEY=RGAPI-fa2b4f29-da39-4870-a433-5f7524c56ae3
-      - RIOT_API_URL=https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id
-      - RIOT_SUMMONER_URL=https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid
+      - RIOT_API_KEY
+      - RIOT_API_URL
+      - RIOT_SUMMONER_URL
+      - ASPNETCORE_URLS
     restart: unless-stopped
     networks:
       - brokengg-network

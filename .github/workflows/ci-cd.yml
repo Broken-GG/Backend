@@ -51,10 +51,10 @@ jobs:
       run: dotnet test Backend.csproj --no-build --configuration Release --verbosity normal
       env:
         RIOT_API_KEY: ${{ secrets.RIOT_API_KEY }}
-        RIOT_API_URL: https://europe.api.riotgames.com/riot/account/v1/accounts/by-riot-id
-        RIOT_SUMMONER_URL: https://euw1.api.riotgames.com/lol/summoner/v4/summoners/by-puuid
-        ASPNETCORE_ENVIRONMENT: Production
-        ASPNETCORE_URLS: http://+:5000
+        RIOT_API_URL: ${{ secrets.RIOT_API_URL }}
+        RIOT_SUMMONER_URL: ${{ secrets.RIOT_SUMMONER_URL }}
+        ASPNETCORE_ENVIRONMENT: ${{ secrets.ASPNETCORE_ENVIRONMENT }}
+        ASPNETCORE_URLS: ${{ secrets.ASPNETCORE_URLS }}
     
     - name: Publish
       run: dotnet publish Backend.csproj --no-build --configuration Release --output ./publish
