@@ -1,5 +1,5 @@
 # Backend - Broken.GG API
-[![CI/CD Integration](https://github.com/Broken-GG/BrokenGG/actions/workflows/integration.yml/badge.svg)](https://github.com/Broken-GG/BrokenGG/Backend/actions)
+[![CI/CD Integration](https://github.com/Broken-GG/BrokenGG/actions/workflows/integration.yml/badge.svg)](https://github.com/Broken-GG/Backend/actions)
 
 ASP.NET Core Web API for League of Legends match history tracking.
 
