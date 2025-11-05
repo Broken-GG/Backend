@@ -244,6 +244,15 @@ namespace api.controller
                         var assists = (int)(participant?.assists ?? 0);
                         var teamId = (int)(participant?.teamId ?? 0);
                         var teamPosition = participant?.teamPosition?.ToString() ?? "Unknown";
+                        var subteamPlacement = (int)(participant?.subteamPlacement ?? 0); // Arena mode only
+                        
+                        // Get Arena augments (only present in Arena mode)
+                        var playerAugments = new List<int>();
+                        if (participant?.playerAugment1 != null) playerAugments.Add((int)participant.playerAugment1);
+                        if (participant?.playerAugment2 != null) playerAugments.Add((int)participant.playerAugment2);
+                        if (participant?.playerAugment3 != null) playerAugments.Add((int)participant.playerAugment3);
+                        if (participant?.playerAugment4 != null) playerAugments.Add((int)participant.playerAugment4);
+                        
                         // Calculate KDA ratio like op.gg (K+A)/D
                         var kdaRatio = deaths > 0 ? Math.Round((double)(kills + assists) / deaths, 2) : kills + assists;
                         var kdaText = $"{kills}/{deaths}/{assists} ({kdaRatio}:1 KDA)";
@@ -289,6 +298,9 @@ namespace api.controller
                             KDA = kdaText,
                             TeamId = teamId,
                             IsMainPlayer = isMainPlayer,
+                            SubteamPlacement = subteamPlacement,
+                            PlayerAugments = playerAugments.ToArray(),
+
 
                             // Summoner Spells
                             summoner1Id = summoner1Id,

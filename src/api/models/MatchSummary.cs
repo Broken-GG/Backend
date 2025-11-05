@@ -59,11 +59,17 @@ namespace api.models
         
         [Required]
         public string KDA { get; set; } = string.Empty;
+
+        // Arena augments (stored as array of IDs)
+        public int[] PlayerAugments { get; set; } = Array.Empty<int>();
         
         [Required]
         public int TeamId { get; set; } // 100 or 200 for team identification
 
         public string TeamPosition { get; set; } = string.Empty;
+
+        // For Arena mode: subteam placement (1-4, indicates which duo team)
+        public int SubteamPlacement { get; set; } = 0;
 
 
         [Required]

@@ -14,6 +14,7 @@ namespace api.service
         Task<string> GetItemIconUrlAsync(int itemId);
         Task<(string Name, string IconUrl)> GetSummonerSpellDataAsync(int spellId);
         Task<(string Name, string IconUrl)> GetItemDataAsync(int itemId);
+        string GetArenaAugmentIconUrl(int augmentId);
     }
 
     public class GameDataService : IGameDataService
@@ -207,6 +208,20 @@ namespace api.service
             var name = await GetItemNameByIdAsync(itemId);
             var iconUrl = await GetItemIconUrlAsync(itemId);
             return (name, iconUrl);
+        }
+
+        // Get Arena augment icon URL by ID
+        // Arena augments use CommunityDragon CDN
+        public string GetArenaAugmentIconUrl(int augmentId)
+        {
+            if (augmentId == 0)
+            {
+                return ""; // No augment
+            }
+
+            // CommunityDragon path for Arena augments (Cherry is the codename for Arena)
+            // These augments are stored in the plugins directory
+            return $"https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/default/v1/cherry-augments/{augmentId}.png";
         }
     }
 }
