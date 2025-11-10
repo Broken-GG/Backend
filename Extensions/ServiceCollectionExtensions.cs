@@ -22,8 +22,8 @@ namespace Backend.Extensions
             services.AddHttpClient<IRiotMatchService, RiotMatchService>();
             services.AddHttpClient<IRiotLeagueService, RiotLeagueService>();
             
-            // Register facade for backward compatibility
-            services.AddScoped<RIOTAPI>();
+            // Register facade interface for clean architecture and testability
+            services.AddScoped<IRIOTAPI, RIOTAPI>();
 
             return services;
         }

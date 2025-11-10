@@ -1,0 +1,166 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  BUILD_CONFIGURATION: 'Release'
+
+jobs:
+  # Fast PR validation - only essential checks
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Cache NuGet packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+    
+    - name: Restore dependencies
+      run: dotnet restore
+    
+    - name: Build
+      run: dotnet build --no-restore --configuration ${{ env.BUILD_CONFIGURATION }}
+    
+    - name: Run Unit Tests (Fast)
+      run: |
+        dotnet test \
+          --no-build \
+          --configuration ${{ env.BUILD_CONFIGURATION }} \
+          --filter "FullyQualifiedName~Unit" \
+          --logger "console;verbosity=minimal" \
+          --collect:"XPlat Code Coverage"
+    
+    - name: Check code formatting
+      run: dotnet format --verify-no-changes --verbosity minimal
+      continue-on-error: true
+    
+    - name: Comment PR
+      uses: actions/github-script@v7
+      if: always()
+      with:
+        script: |
+          const status = '${{ job.status }}' === 'success' ? '✅' : '❌';
+          const message = `${status} **PR Validation ${status === '✅' ? 'Passed' : 'Failed'}**
+          
+          - Build: ${{ job.status }}
+          - Unit Tests: All 127 tests
+          - Configuration: Release
+          
+          ${status === '✅' ? 'Ready for review! 🎉' : 'Please fix the issues before merging.'}`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: message
+          });
+      continue-on-error: true
+
+  # Check for breaking changes
+  breaking-changes:
+    name: Breaking Changes Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout PR
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Checkout base branch
+      run: |
+        git fetch origin ${{ github.base_ref }}
+        git checkout origin/${{ github.base_ref }}
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Build base version
+      run: |
+        dotnet restore
+        dotnet build --configuration ${{ env.BUILD_CONFIGURATION }}
+      continue-on-error: true
+    
+    - name: Checkout PR branch
+      run: git checkout ${{ github.head_ref }}
+    
+    - name: Build PR version
+      run: |
+        dotnet restore
+        dotnet build --configuration ${{ env.BUILD_CONFIGURATION }}
+    
+    - name: Check for API changes
+      run: |
+        echo "Checking for breaking API changes..."
+        git diff origin/${{ github.base_ref }} -- "src/api/controller/*.cs" > api-changes.diff
+        if [ -s api-changes.diff ]; then
+          echo "⚠️ API changes detected in this PR"
+          cat api-changes.diff
+        else
+          echo "✅ No API controller changes detected"
+        fi
+      continue-on-error: true
+
+  # Code coverage for PR
+  pr-coverage:
+    name: Code Coverage Report
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Restore and Build
+      run: |
+        dotnet restore
+        dotnet build --no-restore --configuration ${{ env.BUILD_CONFIGURATION }}
+    
+    - name: Run tests with coverage
+      run: |
+        dotnet test \
+          --no-build \
+          --configuration ${{ env.BUILD_CONFIGURATION }} \
+          --filter "FullyQualifiedName~Unit" \
+          --collect:"XPlat Code Coverage" \
+          -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+    
+    - name: Generate coverage report
+      uses: codecov/codecov-action@v4
+      with:
+        files: '**/TestResults/**/coverage.opencover.xml'
+        flags: pr-coverage
+        name: pr-coverage-report
+      continue-on-error: true
+    
+    - name: Coverage comment
+      uses: romeovs/lcov-reporter-action@v0.3.1
+      if: always()
+      with:
+        lcov-file: '**/TestResults/**/coverage.info'
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true

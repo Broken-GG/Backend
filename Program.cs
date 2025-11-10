@@ -74,3 +74,5 @@ Console.WriteLine("   📈 GET /api/Ranked/{puuid} - Get ranked information");
 Console.WriteLine("   🏆 GET /api/Mastery/{puuid} - Get mastery information");
 
 app.Run();
+
+public partial class Program { }
