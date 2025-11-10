@@ -30,8 +30,6 @@ public class CachingIntegrationTests : IClassFixture<SimpleTestFactory>
         // Act - First request (cache miss)
         var startTime1 = DateTime.UtcNow;
         var response1 = await _client.GetAsync(endpoint);
-        var duration1 = DateTime.UtcNow - startTime1;
-
         // Act - Second request (should be cached)
         var startTime2 = DateTime.UtcNow;
         var response2 = await _client.GetAsync(endpoint);
