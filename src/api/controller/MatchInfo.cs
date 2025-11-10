@@ -40,7 +40,7 @@ namespace api.controller
                 }
 
                 // Step 1: Get match IDs for the PUUID with pagination
-                var matchIdsJson = await _riotApi.GetMatchByPUUID(puuid, start, count);
+                string matchIdsJson = await _riotApi.GetMatchByPUUID(puuid, start, count);
                 
                 if (string.IsNullOrEmpty(matchIdsJson) || matchIdsJson == "[]")
                 {
@@ -48,7 +48,7 @@ namespace api.controller
                 }
 
                 // Step 2: Parse the match IDs array
-                var matchIds = JsonConvert.DeserializeObject<string[]>(matchIdsJson);
+                string[]? matchIds = JsonConvert.DeserializeObject<string[]>(matchIdsJson);
                 
                 if (matchIds == null || matchIds.Length == 0)
                 {
@@ -56,7 +56,7 @@ namespace api.controller
                 }
 
                 // Step 3: Get details for all returned matches
-                var matchSummaries = new List<MatchSummary>();
+                List<MatchSummary> matchSummaries = new List<MatchSummary>();
                 
                 // Console.WriteLine($"🎯 Processing {matchIds.Length} matches for PUUID: {puuid}");
                 
@@ -64,12 +64,12 @@ namespace api.controller
                 {
                     try
                     {
-                        var matchId = matchIds[i];
+                        string matchId = matchIds[i];
                         // Line($"📊 Processing match {i + 1}/{matchesToProcess}: {matchId}");
-                        
-                        var matchDetailsJson = await _riotApi.GetMatchDetailsByMatchId(matchId);
-                        var matchSummary = await DeserializeMatchSummary(matchDetailsJson, puuid);
-                        
+
+                        string matchDetailsJson = await _riotApi.GetMatchDetailsByMatchId(matchId);
+                        MatchSummary? matchSummary = await DeserializeMatchSummary(matchDetailsJson, puuid);
+
                         if (matchSummary != null)
                         {
                             matchSummaries.Add(matchSummary);
@@ -112,47 +112,45 @@ namespace api.controller
                 {
                     return BadRequest("Start index cannot be negative");
                 }
-                
+
                 if (count < 1 || count > 100)
                 {
                     return BadRequest("Count must be between 1 and 100");
                 }
 
-                // Step 1: Get PUUID using summoner name and tagline (keep it internal for security)
-                var puuidData = await _riotApi.GetPUUIDBySummonerNameAndTagline(summonerName, tagline);
-                var (puuid, gameName) = RiotApiDeserializer.DeserializePUUIDInfo(puuidData);
-                
+                string puuidData = await _riotApi.GetPUUIDBySummonerNameAndTagline(summonerName, tagline);
+                (string? puuid, string? gameName) = RiotApiDeserializer.DeserializePUUIDInfo(puuidData);
+
                 if (string.IsNullOrEmpty(puuid))
                 {
                     return NotFound($"Summoner '{summonerName}#{tagline}' not found");
                 }
 
-                // Step 2: Get match IDs for the PUUID with pagination
-                var matchIdsJson = await _riotApi.GetMatchByPUUID(puuid, start, count);
-                
+                string matchIdsJson = await _riotApi.GetMatchByPUUID(puuid, start, count);
+
                 if (string.IsNullOrEmpty(matchIdsJson) || matchIdsJson == "[]")
                 {
                     return NotFound($"No matches found for summoner '{summonerName}#{tagline}'");
                 }
 
                 // Step 3: Parse the match IDs array
-                var matchIds = JsonConvert.DeserializeObject<string[]>(matchIdsJson);
-                
+                string[]? matchIds = JsonConvert.DeserializeObject<string[]>(matchIdsJson);
+
                 if (matchIds == null || matchIds.Length == 0)
                 {
                     return NotFound($"No matches found for summoner '{summonerName}#{tagline}'");
                 }
 
                 // Step 4: Get details for all returned matches
-                var matchSummaries = new List<MatchSummary>();
-                
+                List<MatchSummary> matchSummaries = new List<MatchSummary>();
+
                 for (int i = 0; i < matchIds.Length; i++)
                 {
                     try
                     {
-                        var matchDetailsJson = await _riotApi.GetMatchDetailsByMatchId(matchIds[i]);
-                        var matchSummary = await DeserializeMatchSummary(matchDetailsJson, puuid);
-                        
+                        string matchDetailsJson = await _riotApi.GetMatchDetailsByMatchId(matchIds[i]);
+                        MatchSummary? matchSummary = await DeserializeMatchSummary(matchDetailsJson, puuid);
+
                         if (matchSummary != null)
                         {
                             matchSummaries.Add(matchSummary);
@@ -177,7 +175,6 @@ namespace api.controller
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
         }
-
         private async Task<MatchSummary?> DeserializeMatchSummary(string jsonData, string playerPuuid)
         {
             Console.WriteLine($"[DEBUG] DeserializeMatchSummary called with playerPuuid: {playerPuuid}");
@@ -188,28 +185,23 @@ namespace api.controller
                     return null;
                 }
 
-                // Parse the complex Riot match data structure
-                dynamic? matchData = JsonConvert.DeserializeObject(jsonData);
-                
-                if (matchData?.info == null)
+                // Deserialize to strongly-typed model
+                RiotMatchData? matchData = JsonConvert.DeserializeObject<RiotMatchData>(jsonData);
+
+                if (matchData?.Info?.Participants == null)
                 {
                     return null;
                 }
 
-                var info = matchData.info;
-                var participants = matchData.info.participants;
-                
-                // Find the specific player's data
-                dynamic? playerParticipant = null;
-                if (participants != null)
+                RiotParticipant? playerParticipant = null;
+                List<RiotParticipant> participants = matchData.Info.Participants;
+
+                foreach (RiotParticipant participant in participants)
                 {
-                    foreach (var participant in participants)
+                    if (participant?.Puuid == playerPuuid)
                     {
-                        if (participant?.puuid?.ToString() == playerPuuid)
-                        {
-                            playerParticipant = participant;
-                            break;
-                        }
+                        playerParticipant = participant;
+                        break;
                     }
                 }
 
@@ -219,70 +211,70 @@ namespace api.controller
                 }
 
                 // Create list for all players
-                var allPlayers = new List<PlayerPerformance>();
+                List<PlayerPerformance> allPlayers = new List<PlayerPerformance>();
                 
                 // Extract all participant data
                 if (participants != null)
                 {
-                    foreach (var participant in participants)
+                    foreach (RiotParticipant participant in participants)
                     {
-                        var puuid = participant?.puuid?.ToString() ?? "";
+                        string puuid = participant?.Puuid ?? "";
                         // Try multiple sources for summoner name in order of preference
-                        var summonerName = !string.IsNullOrEmpty(participant?.riotIdGameName?.ToString())
-                            ? participant?.riotIdGameName?.ToString() ?? "Unknown Player"
-                            : !string.IsNullOrEmpty(participant?.summonerName?.ToString())
-                                ? participant?.summonerName?.ToString() ?? "Unknown Player"
+                        string summonerName = !string.IsNullOrEmpty(participant?.RiotIdGameName)
+                            ? participant?.RiotIdGameName ?? "Unknown Player"
+                            : !string.IsNullOrEmpty(participant?.SummonerName)
+                                ? participant?.SummonerName ?? "Unknown Player"
                                 : "Unknown Player";
-                        var tagLine = !string.IsNullOrEmpty(participant?.riotIdTagline?.ToString())
-                            ? participant?.riotIdTagline?.ToString() ?? ""
-                            : !string.IsNullOrEmpty(participant?.summonerTagline?.ToString())
-                                ? participant?.summonerTagline?.ToString() ?? ""
+                        string tagLine = !string.IsNullOrEmpty(participant?.RiotIdTagline)
+                            ? participant?.RiotIdTagline ?? ""
+                            : !string.IsNullOrEmpty(participant?.SummonerTagline)
+                                ? participant?.SummonerTagline ?? ""
                                 : "Unknown Tagline";
-                        var championName = participant?.championName?.ToString() ?? "Unknown";
-                        var kills = (int)(participant?.kills ?? 0);
-                        var deaths = (int)(participant?.deaths ?? 0);
-                        var assists = (int)(participant?.assists ?? 0);
-                        var teamId = (int)(participant?.teamId ?? 0);
-                        var teamPosition = participant?.teamPosition?.ToString() ?? "Unknown";
-                        var subteamPlacement = (int)(participant?.subteamPlacement ?? 0); // Arena mode only
-                        
+                        string championName = participant?.ChampionName ?? "Unknown";
+                        int kills = participant?.Kills ?? 0;
+                        int deaths = participant?.Deaths ?? 0;
+                        int assists = participant?.Assists ?? 0;
+                        int teamId = participant?.TeamId ?? 0;
+                        string teamPosition = participant?.TeamPosition ?? "Unknown";
+                        int subteamPlacement = participant?.SubteamPlacement ?? 0; // Arena mode only
+
                         // Get Arena augments (only present in Arena mode)
-                        var playerAugments = new List<int>();
-                        if (participant?.playerAugment1 != null) playerAugments.Add((int)participant.playerAugment1);
-                        if (participant?.playerAugment2 != null) playerAugments.Add((int)participant.playerAugment2);
-                        if (participant?.playerAugment3 != null) playerAugments.Add((int)participant.playerAugment3);
-                        if (participant?.playerAugment4 != null) playerAugments.Add((int)participant.playerAugment4);
-                        
+                        List<int> playerAugments = new List<int>();
+                        if (participant?.PlayerAugment1 != null) playerAugments.Add(participant.PlayerAugment1.Value);
+                        if (participant?.PlayerAugment2 != null) playerAugments.Add(participant.PlayerAugment2.Value);
+                        if (participant?.PlayerAugment3 != null) playerAugments.Add(participant.PlayerAugment3.Value);
+                        if (participant?.PlayerAugment4 != null) playerAugments.Add(participant.PlayerAugment4.Value);
+
                         // Calculate KDA ratio like op.gg (K+A)/D
-                        var kdaRatio = deaths > 0 ? Math.Round((double)(kills + assists) / deaths, 2) : kills + assists;
-                        var kdaText = $"{kills}/{deaths}/{assists} ({kdaRatio}:1 KDA)";
+                        double kdaRatio = deaths > 0 ? Math.Round((double)(kills + assists) / deaths, 2) : kills + assists;
+                        string kdaText = $"{kills}/{deaths}/{assists} ({kdaRatio}:1 KDA)";
                         // Generate champion icon URL using latest Data Dragon version
-                        var version = await _championDataService.GetCurrentVersionAsync();
-                        var championIconUrl = championName != "Unknown"
+                        string version = await _championDataService.GetCurrentVersionAsync();
+                        string championIconUrl = championName != "Unknown"
                             ? $"https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/{championName}.png"
                             : $"https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/Unknown.png";
-                        var isMainPlayer = puuid == playerPuuid;
+                        bool isMainPlayer = puuid == playerPuuid;
                         // Get summoner spell IDs
-                        var summoner1Id = (int)(participant?.summoner1Id ?? 0);
-                        var summoner2Id = (int)(participant?.summoner2Id ?? 0);
+                        int summoner1Id = participant?.Summoner1Id ?? 0;
+                        int summoner2Id = participant?.Summoner2Id ?? 0;
                         // Get item IDs
-                        var item0 = (int)(participant?.item0 ?? 0);
-                        var item1 = (int)(participant?.item1 ?? 0);
-                        var item2 = (int)(participant?.item2 ?? 0);
-                        var item3 = (int)(participant?.item3 ?? 0);
-                        var item4 = (int)(participant?.item4 ?? 0);
-                        var item5 = (int)(participant?.item5 ?? 0);
-                        var item6 = (int)(participant?.item6 ?? 0);
+                        int item0 = participant?.Item0 ?? 0;
+                        int item1 = participant?.Item1 ?? 0;
+                        int item2 = participant?.Item2 ?? 0;
+                        int item3 = participant?.Item3 ?? 0;
+                        int item4 = participant?.Item4 ?? 0;
+                        int item5 = participant?.Item5 ?? 0;
+                        int item6 = participant?.Item6 ?? 0;
                         // Fetch summoner spell and item URLs
-                        var summoner1Url = await _gameDataService.GetSummonerSpellIconUrlAsync(summoner1Id);
-                        var summoner2Url = await _gameDataService.GetSummonerSpellIconUrlAsync(summoner2Id);
-                        var item0Url = await _gameDataService.GetItemIconUrlAsync(item0);
-                        var item1Url = await _gameDataService.GetItemIconUrlAsync(item1);
-                        var item2Url = await _gameDataService.GetItemIconUrlAsync(item2);
-                        var item3Url = await _gameDataService.GetItemIconUrlAsync(item3);
-                        var item4Url = await _gameDataService.GetItemIconUrlAsync(item4);
-                        var item5Url = await _gameDataService.GetItemIconUrlAsync(item5);
-                        var item6Url = await _gameDataService.GetItemIconUrlAsync(item6);
+                        string summoner1Url = await _gameDataService.GetSummonerSpellIconUrlAsync(summoner1Id);
+                        string summoner2Url = await _gameDataService.GetSummonerSpellIconUrlAsync(summoner2Id);
+                        string item0Url = await _gameDataService.GetItemIconUrlAsync(item0);
+                        string item1Url = await _gameDataService.GetItemIconUrlAsync(item1);
+                        string item2Url = await _gameDataService.GetItemIconUrlAsync(item2);
+                        string item3Url = await _gameDataService.GetItemIconUrlAsync(item3);
+                        string item4Url = await _gameDataService.GetItemIconUrlAsync(item4);
+                        string item5Url = await _gameDataService.GetItemIconUrlAsync(item5);
+                        string item6Url = await _gameDataService.GetItemIconUrlAsync(item6);
                         allPlayers.Add(new PlayerPerformance
                         {
                             SummonerName = summonerName,
@@ -293,8 +285,8 @@ namespace api.controller
                             Deaths = deaths,
                             Assists = assists,
                             TeamPosition = teamPosition,
-                            CS = (int)(participant?.totalMinionsKilled ?? 0) + (int)(participant?.neutralMinionsKilled ?? 0),
-                            VisionScore = (int)(participant?.visionScore ?? 0),
+                            CS = (participant?.TotalMinionsKilled ?? 0) + (participant?.NeutralMinionsKilled ?? 0),
+                            VisionScore = participant?.VisionScore ?? 0,
                             KDA = kdaText,
                             TeamId = teamId,
                             IsMainPlayer = isMainPlayer,
@@ -332,17 +324,17 @@ namespace api.controller
                 }
 
                 // Get main player data
-                var mainPlayer = allPlayers.FirstOrDefault(p => p.IsMainPlayer);
+                PlayerPerformance? mainPlayer = allPlayers.FirstOrDefault(p => p.IsMainPlayer);
                 if (mainPlayer == null)
                 {
                     Console.WriteLine($"❌ Main player not found! Searched PUUID: {playerPuuid}");
                     Console.WriteLine($"🔍 Available PUUIDs in match:");
                     if (participants != null)
                     {
-                        foreach (var participant in participants)
+                        foreach (RiotParticipant participant in participants)
                         {
-                            var puuid = participant?.puuid?.ToString() ?? "null";
-                            var name = participant?.riotIdGameName?.ToString() ?? participant?.summonerName?.ToString() ?? "Unknown";
+                            string puuid = participant?.Puuid ?? "null";
+                            string name = participant?.RiotIdGameName ?? participant?.SummonerName ?? "Unknown";
                             Console.WriteLine($"   - {puuid} ({name})");
                         }
                     }
@@ -353,18 +345,19 @@ namespace api.controller
                 // Console.WriteLine($"📊 Total players in match: {allPlayers.Count}");
 
                 // Determine game mode based on queue ID
-                var queueId = (int)(info?.queueId ?? 0);
-                var gameMode = GetGameModeFromQueueId(queueId);
+                RiotMatchInfo? info = matchData?.Info;
+                int queueId = info?.QueueId ?? 0;
+                string gameMode = GetGameModeFromQueueId(queueId);
 
                 return new MatchSummary
                 {
-                    MatchId = matchData?.metadata?.matchId ?? "Unknown",
+                    MatchId = matchData?.Metadata?.MatchId ?? "Unknown",
                     GameMode = gameMode,
-                    GameDate = info?.gameStartTimestamp != null 
-                        ? DateTimeOffset.FromUnixTimeMilliseconds((long)info.gameStartTimestamp).DateTime 
+                    GameDate = info?.GameStartTimestamp != null 
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(info.GameStartTimestamp.Value).DateTime 
                         : DateTime.MinValue,
-                    GameDurationMinutes = info?.gameDuration != null ? (int)Math.Round((double)info.gameDuration / 60) : 0,
-                    Victory = playerParticipant?.win ?? false,
+                    GameDurationMinutes = info?.GameDuration != null ? (int)Math.Round((double)info.GameDuration.Value / 60) : 0,
+                    Victory = playerParticipant?.Win ?? false,
                     MainPlayer = mainPlayer,
                     AllPlayers = allPlayers.ToArray()
                 };

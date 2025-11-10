@@ -25,27 +25,23 @@ namespace api.controller
     {
         try
         {
-            // Get PUUID and other summoner info
-            var puuidData = await _riotApi.GetPUUIDBySummonerNameAndTagline(summonerName, tagline);
-            var (puuid, gameName) = RiotApiDeserializer.DeserializePUUIDInfo(puuidData);
+            string puuidData = await _riotApi.GetPUUIDBySummonerNameAndTagline(summonerName, tagline);
+            (string? puuid, string? gameName) = RiotApiDeserializer.DeserializePUUIDInfo(puuidData);
 
             if (string.IsNullOrEmpty(puuid))
             {
                 return NotFound(new { message = "Summoner not found." });
             }
 
-            // Get additional summoner info using the PUUID
-            var summonerInfoJson = await _riotApi.GetSummonerByName(puuid);
+            string summonerInfoJson = await _riotApi.GetSummonerByName(puuid);
             
-            // Use the helper method for deserialization
-            var summonerInfo = await RiotApiDeserializer.DeserializeSummonerInfoAsync(summonerInfoJson, _championDataService);
+            SummonerInfo summonerInfo = await RiotApiDeserializer.DeserializeSummonerInfoAsync(summonerInfoJson, _championDataService);
 
             if (summonerInfo == null)
             {
                 return NotFound(new { message = "Summoner info not found." });
             }
 
-            // Include PUUID and names in the response
             summonerInfo.PUUID = puuid;
             summonerInfo.SummonerName = gameName ?? summonerName;
             summonerInfo.Tagline = tagline;

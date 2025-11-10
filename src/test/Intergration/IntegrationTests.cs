@@ -13,18 +13,18 @@ namespace api.test
         public async Task GetSummonerInfo_MockAPI_ReturnsCorrectData()
         {
             // Arrange mock services
-            var mockRiotApi = new MockRiotAPI();
-            var mockChampionDataService = new MockChampionDataService();
-            var controller = new SummonerInfoController(mockRiotApi, mockChampionDataService);
+            MockRiotAPI mockRiotApi = new MockRiotAPI();
+            MockChampionDataService mockChampionDataService = new MockChampionDataService();
+            SummonerInfoController controller = new SummonerInfoController(mockRiotApi, mockChampionDataService);
 
             // Act
-            var result = await controller.GetSummonerInfo("MOCK_SUMMONER", "MOCK_TAGLINE");
+            IActionResult result = await controller.GetSummonerInfo("MOCK_SUMMONER", "MOCK_TAGLINE");
 
             // Assert
             Assert.NotNull(result);
             if (result is OkObjectResult okResult)
             {
-                var summoner = Assert.IsType<SummonerInfo>(okResult.Value);
+                SummonerInfo summoner = Assert.IsType<SummonerInfo>(okResult.Value);
                 Assert.Equal("MOCK_SUMMONER", summoner.SummonerName);
                 Assert.Equal("MOCK_TAGLINE", summoner.Tagline);
                 Assert.Equal(30, summoner.Level);
@@ -38,14 +38,14 @@ namespace api.test
 
     public class MockRiotAPI : api.service.RIOTAPI
     {
-        public override async Task<string> GetPUUIDBySummonerNameAndTagline(string summonerName, string tagline)
+        public override Task<string> GetPUUIDBySummonerNameAndTagline(string summonerName, string tagline)
         {
-            return "{\"puuid\":\"MOCK_PUUID\"}";
+            return Task.FromResult("{\"puuid\":\"MOCK_PUUID\"}");
         }
 
-        public override async Task<string> GetSummonerByName(string PUUID)
+        public override Task<string> GetSummonerByName(string PUUID)
         {
-            return "{\"puuid\":\"MOCK_PUUID\",\"profileIconId\":1234,\"revisionDate\":1761668730000,\"summonerLevel\":30}";
+            return Task.FromResult("{\"puuid\":\"MOCK_PUUID\",\"profileIconId\":1234,\"revisionDate\":1761668730000,\"summonerLevel\":30}");
         }
     }
 

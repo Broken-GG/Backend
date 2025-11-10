@@ -34,17 +34,17 @@ namespace api.service
         }
         public virtual async Task<string> GetPUUIDBySummonerNameAndTagline(string summonerName, string tagline)
         {
-            var url = $"{baseUrl}/{summonerName}/{tagline}";
+            string url = $"{baseUrl}/{summonerName}/{tagline}";
             // Console.WriteLine($"🌐 API Call 1: GET {url}");
             
-            var request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
+            HttpRequestMessage request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
 
-            var response = await _httpClient.SendAsync(request);
+            HttpResponseMessage response = await _httpClient.SendAsync(request);
             // Console.WriteLine($"📊 Response Status: {response.StatusCode}");
             
             response.EnsureSuccessStatusCode();
 
-            var content = await response.Content.ReadAsStringAsync();
+            string content = await response.Content.ReadAsStringAsync();
             // Console.WriteLine($"📄 Response Content: {content}");
             
             return content;
@@ -52,38 +52,38 @@ namespace api.service
 
         public virtual async Task<string> GetSummonerByName(string PUUID)
         {
-            var url = $"{summonerUrl}/{PUUID}";
+            string url = $"{summonerUrl}/{PUUID}";
             // Console.WriteLine($"🌐 API Call 2: GET {url}");
             
-            var request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
+            HttpRequestMessage request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
 
-            var response = await _httpClient.SendAsync(request);
+            HttpResponseMessage response = await _httpClient.SendAsync(request);
             // Console.WriteLine($"📊 Response Status: {response.StatusCode}");
             
             response.EnsureSuccessStatusCode();
 
-            var content = await response.Content.ReadAsStringAsync();
+            string content = await response.Content.ReadAsStringAsync();
             // Console.WriteLine($"📄 Response Content: {content}");
             
             return content;
         }
         public virtual async Task<string> GetMatchByPUUID(string PUUID, int start = 0, int count = 10)
         {
-            var url = $"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{PUUID}/ids?start={start}&count={count}";
+            string url = $"https://europe.api.riotgames.com/lol/match/v5/matches/by-puuid/{PUUID}/ids?start={start}&count={count}";
             Console.WriteLine($"🌐 API Call: GET {url}");
 
-            var request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
+            HttpRequestMessage request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
 
             for (int attempt = 1; attempt <= 3; attempt++)
             {
                 try
                 {
-                    var response = await _httpClient.SendAsync(request);
+                    HttpResponseMessage response = await _httpClient.SendAsync(request);
                     Console.WriteLine($"📊 Response Status: {response.StatusCode}");
 
                     response.EnsureSuccessStatusCode();
 
-                    var content = await response.Content.ReadAsStringAsync();
+                    string content = await response.Content.ReadAsStringAsync();
                     Console.WriteLine($"📄 Response Content: {content.Substring(0, Math.Min(200, content.Length))}...");
 
                     return content;
@@ -106,17 +106,17 @@ namespace api.service
         }
         public virtual async Task<string> GetMatchDetailsByMatchId(string matchId)
         {
-            var url = $"https://europe.api.riotgames.com/lol/match/v5/matches/{matchId}";
+            string url = $"https://europe.api.riotgames.com/lol/match/v5/matches/{matchId}";
             // Console.WriteLine($"🌐 API Call 4: GET {url}");
             
-            var request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
+            HttpRequestMessage request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
 
-            var response = await _httpClient.SendAsync(request);
+            HttpResponseMessage response = await _httpClient.SendAsync(request);
             // Console.WriteLine($"📊 Response Status: {response.StatusCode}");
             
             response.EnsureSuccessStatusCode();
 
-            var content = await response.Content.ReadAsStringAsync();
+            string content = await response.Content.ReadAsStringAsync();
             // Console.WriteLine($"📄 Response Content: {content}");
             
             return content;
@@ -124,30 +124,30 @@ namespace api.service
 
         public virtual async Task<string> GetRankedInfoByPUUID(string PUUID)
         {
-            var url = $"https://euw1.api.riotgames.com/lol/league/v4/entries/by-puuid/{PUUID}";
+            string url = $"https://euw1.api.riotgames.com/lol/league/v4/entries/by-puuid/{PUUID}";
             
-            var request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
+            HttpRequestMessage request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
 
-            var response = await _httpClient.SendAsync(request);
+            HttpResponseMessage response = await _httpClient.SendAsync(request);
             
             response.EnsureSuccessStatusCode();
 
-            var content = await response.Content.ReadAsStringAsync();
+            string content = await response.Content.ReadAsStringAsync();
             
             return content;
         }
 
         public virtual async Task<string> GetMasteryInfoByPUUID(string PUUID)
         {
-            var url = $"https://euw1.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/{PUUID}";
+            string url = $"https://euw1.api.riotgames.com/lol/champion-mastery/v4/champion-masteries/by-puuid/{PUUID}";
             
-            var request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
+            HttpRequestMessage request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
 
-            var response = await _httpClient.SendAsync(request);
+            HttpResponseMessage response = await _httpClient.SendAsync(request);
             
             response.EnsureSuccessStatusCode();
 
-            var content = await response.Content.ReadAsStringAsync();
+            string content = await response.Content.ReadAsStringAsync();
             
             return content;
         }

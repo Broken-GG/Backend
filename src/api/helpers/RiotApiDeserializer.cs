@@ -22,8 +22,8 @@ namespace api.helpers
                     return (null, null);
                 }
 
-                dynamic? data = JsonConvert.DeserializeObject(jsonData);
-                return (data?.puuid, data?.gameName);
+                RiotAccountData? data = JsonConvert.DeserializeObject<RiotAccountData>(jsonData);
+                return (data?.Puuid, data?.GameName);
             }
             catch (JsonException ex)
             {
@@ -46,17 +46,17 @@ namespace api.helpers
                     throw new ArgumentException("JSON data cannot be null or empty");
                 }
 
-                dynamic? data = JsonConvert.DeserializeObject(jsonData);
+                RiotSummonerData? data = JsonConvert.DeserializeObject<RiotSummonerData>(jsonData);
                 
-                var profileIconId = (int)(data?.profileIconId ?? 0);
-                var summonerLevel = (int)(data?.summonerLevel ?? 0);
-                
+                int profileIconId = data?.ProfileIconId ?? 0;
+                int summonerLevel = data?.SummonerLevel ?? 0;
+
                 Console.WriteLine($"🔍 Profile Icon ID: {profileIconId}");
                 Console.WriteLine($"🔍 Summoner Level: {summonerLevel}");
                 
                 // Get latest Data Dragon version
-                var version = await championDataService.GetCurrentVersionAsync();
-                var profileIconUrl = profileIconId > 0
+                string version = await championDataService.GetCurrentVersionAsync();
+                string profileIconUrl = profileIconId > 0
                     ? $"https://ddragon.leagueoflegends.com/cdn/{version}/img/profileicon/{profileIconId}.png"
                     : $"https://ddragon.leagueoflegends.com/cdn/{version}/img/profileicon/0.png";
                 
@@ -64,7 +64,7 @@ namespace api.helpers
                 
                 return new SummonerInfo
                 {
-                    SummonerName = data?.name ?? "Unknown",
+                    SummonerName = data?.Name ?? "Unknown",
                     Tagline = "Unknown", // Will be set from the original request
                     Level = summonerLevel,
                     Region = "EU", // Default region for now
@@ -77,7 +77,7 @@ namespace api.helpers
                 Console.WriteLine($"❌ Error deserializing summoner info: {ex.Message}");
                 
                 // Get latest Data Dragon version for fallback
-                var version = await championDataService.GetCurrentVersionAsync();
+                string version = await championDataService.GetCurrentVersionAsync();
                 
                 // Return placeholder if deserialization fails
                 return new SummonerInfo

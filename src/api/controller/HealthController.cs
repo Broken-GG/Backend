@@ -2,6 +2,35 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.controller
 {
+
+    public class HealthDetails
+    {
+        public required string Status { get; set; }
+        public DateTime Timestamp { get; set; }
+        public required string Service { get; set; }
+        public required string Version { get; set; }
+        public required Checks Checks { get; set; }
+    }
+
+    public class Checks
+    {
+        public required RiotApiKey RiotApiKey { get; set; }
+        public required EnvironmentCheck Environment { get; set; }
+    }
+
+    public class RiotApiKey
+    {
+        public required string Status { get; set; }
+        public required string Message { get; set; }
+    }
+
+    public class EnvironmentCheck
+    {
+        public required string Status { get; set; }
+        public required string DotnetVersion { get; set; }
+        public required string OsVersion { get; set; }
+    }
+
     /// <summary>
     /// Health check endpoint for container orchestration and monitoring
     /// </summary>
@@ -33,26 +62,26 @@ namespace api.controller
         public IActionResult GetDetailed()
         {
             // Check if Riot API key is configured
-            var apiKeyConfigured = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RIOT_API_KEY"));
+            bool apiKeyConfigured = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RIOT_API_KEY"));
 
-            var details = new
+            HealthDetails details = new HealthDetails
             {
-                status = apiKeyConfigured ? "Healthy" : "Degraded",
-                timestamp = DateTime.UtcNow,
-                service = "Broken.GG Backend API",
-                version = "1.0.0",
-                checks = new
+                Status = apiKeyConfigured ? "Healthy" : "Degraded",
+                Timestamp = DateTime.UtcNow,
+                Service = "Broken.GG Backend API",
+                Version = "1.0.0",
+                Checks = new Checks
                 {
-                    riotApiKey = new
+                    RiotApiKey = new RiotApiKey
                     {
-                        status = apiKeyConfigured ? "OK" : "Missing",
-                        message = apiKeyConfigured ? "API key is configured" : "RIOT_API_KEY environment variable is not set"
+                        Status = apiKeyConfigured ? "OK" : "Missing",
+                        Message = apiKeyConfigured ? "API key is configured" : "RIOT_API_KEY environment variable is not set"
                     },
-                    environment = new
+                    Environment = new EnvironmentCheck
                     {
-                        status = "OK",
-                        dotnetVersion = Environment.Version.ToString(),
-                        osVersion = Environment.OSVersion.ToString()
+                        Status = "OK",
+                        DotnetVersion = Environment.Version.ToString(),
+                        OsVersion = Environment.OSVersion.ToString()
                     }
                 }
             };

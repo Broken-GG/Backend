@@ -25,43 +25,43 @@ namespace api.service
         private readonly object _lock = new object();
 
         // Fetch summoner spell mapping from Data Dragon
-        private async Task<Dictionary<int, string>> GetSummonerSpellMappingAsync()
+        private Task<Dictionary<int, string>> GetSummonerSpellMappingAsync()
         {
             if (_summonerSpellIdToKey != null)
             {
-                return _summonerSpellIdToKey;
+                return Task.FromResult(_summonerSpellIdToKey);
             }
 
             lock (_lock)
             {
                 if (_summonerSpellIdToKey != null)
                 {
-                    return _summonerSpellIdToKey;
+                    return Task.FromResult(_summonerSpellIdToKey);
                 }
 
                 try
                 {
                     // For version, you will need to inject IChampionDataService in the constructor for DI
-                    var version = _championDataService.GetCurrentVersionAsync().Result;
-                    var url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/summoner.json";
+                    string version = _championDataService.GetCurrentVersionAsync().Result;
+                    string url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/summoner.json";
                     
-                    var response = _httpClient.GetStringAsync(url).Result;
-                    var json = JObject.Parse(response);
-                    var summonerSpells = json["data"];
+                    string response = _httpClient.GetStringAsync(url).Result;
+                    JObject json = JObject.Parse(response);
+                    JToken? summonerSpells = json["data"];
 
                     _summonerSpellIdToKey = new Dictionary<int, string>();
 
                     if (summonerSpells != null)
                     {
-                        foreach (var spell in summonerSpells)
+                        foreach (JToken spell in summonerSpells)
                         {
-                            var spellData = spell.First;
+                            JToken? spellData = spell.First;
                             if (spellData != null && spellData["key"] != null)
                             {
-                                var keyValue = spellData["key"]?.ToString();
-                                if (keyValue != null && int.TryParse(keyValue, out var id))
+                                string? keyValue = spellData["key"]?.ToString();
+                                if (keyValue != null && int.TryParse(keyValue, out int id))
                                 {
-                                    var name = spell.Path.Split('.')[1]; // Gets the spell key (e.g., "SummonerFlash")
+                                    string name = spell.Path.Split('.')[1]; // Gets the spell key (e.g., "SummonerFlash")
                                     _summonerSpellIdToKey[id] = name;
                                 }
                             }
@@ -76,45 +76,45 @@ namespace api.service
                     _summonerSpellIdToKey = new Dictionary<int, string>();
                 }
 
-                return _summonerSpellIdToKey;
+                return Task.FromResult(_summonerSpellIdToKey);
             }
         }
 
         // Fetch item mapping from Data Dragon
-        private async Task<Dictionary<int, string>> GetItemMappingAsync()
+        private Task<Dictionary<int, string>> GetItemMappingAsync()
         {
             if (_itemIdToName != null)
             {
-                return _itemIdToName;
+                return Task.FromResult(_itemIdToName);
             }
 
             lock (_lock)
             {
                 if (_itemIdToName != null)
                 {
-                    return _itemIdToName;
+                    return Task.FromResult(_itemIdToName);
                 }
 
                 try
                 {
-                    var version = _championDataService.GetCurrentVersionAsync().Result;
-                    var url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/item.json";
+                    string version = _championDataService.GetCurrentVersionAsync().Result;
+                    string url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/item.json";
                     
-                    var response = _httpClient.GetStringAsync(url).Result;
-                    var json = JObject.Parse(response);
-                    var items = json["data"];
+                    string response = _httpClient.GetStringAsync(url).Result;
+                    JObject json = JObject.Parse(response);
+                    JToken? items = json["data"];
 
                     _itemIdToName = new Dictionary<int, string>();
 
                     if (items != null)
                     {
-                        foreach (var item in items)
+                        foreach (JToken item in items)
                         {
-                            var itemId = item.Path.Split('.')[1]; // Gets the item ID as string
-                            if (int.TryParse(itemId, out var id))
+                            string itemId = item.Path.Split('.')[1]; // Gets the item ID as string
+                            if (int.TryParse(itemId, out int id))
                             {
-                                var itemData = item.First;
-                                var name = itemData?["name"]?.ToString() ?? itemId;
+                                JToken? itemData = item.First;
+                                string name = itemData?["name"]?.ToString() ?? itemId;
                                 _itemIdToName[id] = name;
                             }
                         }
@@ -128,7 +128,7 @@ namespace api.service
                     _itemIdToName = new Dictionary<int, string>();
                 }
 
-                return _itemIdToName;
+                return Task.FromResult(_itemIdToName);
             }
         }
 
@@ -147,8 +147,8 @@ namespace api.service
                 return "None";
             }
 
-            var mapping = await GetSummonerSpellMappingAsync();
-            return mapping.TryGetValue(spellId, out var name) ? name : "Unknown";
+            Dictionary<int, string> mapping = await GetSummonerSpellMappingAsync();
+            return mapping.TryGetValue(spellId, out string? name) ? name : "Unknown";
         }
 
         // Get summoner spell icon URL by ID
@@ -159,8 +159,8 @@ namespace api.service
                 return "";
             }
 
-            var version = await _championDataService.GetCurrentVersionAsync();
-            var spellName = await GetSummonerSpellNameByIdAsync(spellId);
+            string version = await _championDataService.GetCurrentVersionAsync();
+            string spellName = await GetSummonerSpellNameByIdAsync(spellId);
             
             if (spellName == "Unknown" || spellName == "None")
             {
@@ -178,8 +178,8 @@ namespace api.service
                 return "Empty";
             }
 
-            var mapping = await GetItemMappingAsync();
-            return mapping.TryGetValue(itemId, out var name) ? name : "Unknown Item";
+            Dictionary<int, string> mapping = await GetItemMappingAsync();
+            return mapping.TryGetValue(itemId, out string? name) ? name : "Unknown Item";
         }
 
         // Get item icon URL by ID
@@ -190,23 +190,23 @@ namespace api.service
                 return ""; // Empty slot
             }
 
-            var version = await _championDataService.GetCurrentVersionAsync();
+            string version = await _championDataService.GetCurrentVersionAsync();
             return $"https://ddragon.leagueoflegends.com/cdn/{version}/img/item/{itemId}.png";
         }
 
         // Get complete summoner spell data (name and icon URL)
         public async Task<(string Name, string IconUrl)> GetSummonerSpellDataAsync(int spellId)
         {
-            var name = await GetSummonerSpellNameByIdAsync(spellId);
-            var iconUrl = await GetSummonerSpellIconUrlAsync(spellId);
+            string name = await GetSummonerSpellNameByIdAsync(spellId);
+            string iconUrl = await GetSummonerSpellIconUrlAsync(spellId);
             return (name, iconUrl);
         }
 
         // Get complete item data (name and icon URL)
         public async Task<(string Name, string IconUrl)> GetItemDataAsync(int itemId)
         {
-            var name = await GetItemNameByIdAsync(itemId);
-            var iconUrl = await GetItemIconUrlAsync(itemId);
+            string name = await GetItemNameByIdAsync(itemId);
+            string iconUrl = await GetItemIconUrlAsync(itemId);
             return (name, iconUrl);
         }
 

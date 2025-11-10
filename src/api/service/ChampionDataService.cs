@@ -32,9 +32,9 @@ namespace api.service
 
             try
             {
-                var url = "https://ddragon.leagueoflegends.com/api/versions.json";
-                var response = await _httpClient.GetStringAsync(url);
-                var versions = JsonConvert.DeserializeObject<string[]>(response);
+                string url = "https://ddragon.leagueoflegends.com/api/versions.json";
+                string response = await _httpClient.GetStringAsync(url);
+                string[]? versions = JsonConvert.DeserializeObject<string[]>(response);
                 
                 if (versions != null && versions.Length > 0)
                 {
@@ -59,44 +59,44 @@ namespace api.service
         }
 
         // Lazy load champion data from Data Dragon API
-        private async Task<Dictionary<long, string>> GetChampionMappingAsync()
+        private Task<Dictionary<long, string>> GetChampionMappingAsync()
         {
             if (_championIdToKey != null)
             {
-                return _championIdToKey;
+                return Task.FromResult(_championIdToKey);
             }
 
             lock (_lock)
             {
                 if (_championIdToKey != null)
                 {
-                    return _championIdToKey;
+                    return Task.FromResult(_championIdToKey);
                 }
 
                 // Fetch champion data from Data Dragon
-                var version = GetLatestVersionAsync().Result;
-                var url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
-                
+                string version = GetLatestVersionAsync().Result;
+                string url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/champion.json";
+
                 try
                 {
-                    var response = _httpClient.GetStringAsync(url).Result;
-                    var json = JObject.Parse(response);
-                    var champions = json["data"];
+                    string response = _httpClient.GetStringAsync(url).Result;
+                    JObject json = JObject.Parse(response);
+                    JToken? champions = json["data"];
 
                     _championIdToKey = new Dictionary<long, string>();
 
                     if (champions != null)
                     {
-                        foreach (var champion in champions)
+                        foreach (JToken champion in champions)
                         {
-                            var champData = champion.First;
+                            JToken? champData = champion.First;
                             if (champData != null && champData["key"] != null)
                             {
-                                var keyValue = champData["key"]?.ToString();
+                                string? keyValue = champData["key"]?.ToString();
                                 if (keyValue != null)
                                 {
-                                    var id = long.Parse(keyValue);
-                                    var name = champion.Path.Split('.')[1]; // Gets the champion key (e.g., "Ahri")
+                                    long id = long.Parse(keyValue);
+                                    string name = champion.Path.Split('.')[1];
                                     _championIdToKey[id] = name;
                                 }
                             }
@@ -111,20 +111,20 @@ namespace api.service
                     _championIdToKey = new Dictionary<long, string>();
                 }
 
-                return _championIdToKey;
+                return Task.FromResult(_championIdToKey);
             }
         }
 
         public async Task<string> GetChampionNameByIdAsync(long championId)
         {
-            var mapping = await GetChampionMappingAsync();
-            return mapping.TryGetValue(championId, out var name) ? name : "Unknown";
+            Dictionary<long, string> mapping = await GetChampionMappingAsync();
+            return mapping.TryGetValue(championId, out string? name) ? name : "Unknown";
         }
 
         public async Task<string> GetChampionIconUrlAsync(long championId, string? version = null)
         {
             version ??= await GetLatestVersionAsync();
-            var championName = await GetChampionNameByIdAsync(championId);
+            string championName = await GetChampionNameByIdAsync(championId);
             if (championName == "Unknown")
             {
                 return $"https://ddragon.leagueoflegends.com/cdn/{version}/img/champion/Unknown.png";
@@ -135,8 +135,8 @@ namespace api.service
         public async Task<(string Name, string IconUrl)> GetChampionDataAsync(long championId, string? version = null)
         {
             version ??= await GetLatestVersionAsync();
-            var name = await GetChampionNameByIdAsync(championId);
-            var iconUrl = await GetChampionIconUrlAsync(championId, version);
+            string name = await GetChampionNameByIdAsync(championId);
+            string iconUrl = await GetChampionIconUrlAsync(championId, version);
             return (name, iconUrl);
         }
     }

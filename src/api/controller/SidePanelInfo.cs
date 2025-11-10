@@ -25,8 +25,8 @@ namespace api.controller
         {
             try
             {
-                var rankedInfoJson = await _riotApi.GetRankedInfoByPUUID(puuid);
-                var rankedInfo = JsonConvert.DeserializeObject<RankedInfo[]>(rankedInfoJson);
+                string rankedInfoJson = await _riotApi.GetRankedInfoByPUUID(puuid);
+                RankedInfo[]? rankedInfo = JsonConvert.DeserializeObject<RankedInfo[]>(rankedInfoJson);
 
                 if (rankedInfo == null || rankedInfo.Length == 0)
                 {
@@ -47,8 +47,8 @@ namespace api.controller
         {
             try
             {
-                var masteryInfoJson = await _riotApi.GetMasteryInfoByPUUID(puuid);
-                var masteryInfoArray = JsonConvert.DeserializeObject<MasteryInfo[]>(masteryInfoJson);
+                string masteryInfoJson = await _riotApi.GetMasteryInfoByPUUID(puuid);
+                MasteryInfo[]? masteryInfoArray = JsonConvert.DeserializeObject<MasteryInfo[]>(masteryInfoJson);
 
                 if (masteryInfoArray == null || masteryInfoArray.Length == 0)
                 {
@@ -56,9 +56,9 @@ namespace api.controller
                 }
 
                 // Populate champion names and icon URLs using the ChampionDataService
-                foreach (var mastery in masteryInfoArray)
+                foreach (MasteryInfo mastery in masteryInfoArray)
                 {
-                    var championData = await _championDataService.GetChampionDataAsync(mastery.ChampionId);
+                    (string Name, string IconUrl) championData = await _championDataService.GetChampionDataAsync(mastery.ChampionId);
                     mastery.ChampionName = championData.Name;
                     mastery.ChampionIconUrl = championData.IconUrl;
                 }
