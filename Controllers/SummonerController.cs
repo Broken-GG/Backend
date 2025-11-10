@@ -33,6 +33,17 @@ namespace Backend.Controllers
         [HttpGet("{summonerName}/{tagline}")]
         public async Task<IActionResult> GetSummonerInfo(string summonerName, string tagline)
         {
+            // Input validation
+            if (!ValidationHelper.IsValidSummonerName(summonerName))
+            {
+                return BadRequest(new { message = "Invalid summoner name. Must be 3-16 characters with letters, numbers, spaces, or underscores." });
+            }
+
+            if (!ValidationHelper.IsValidTagline(tagline))
+            {
+                return BadRequest(new { message = "Invalid tagline. Must be 2-10 alphanumeric characters." });
+            }
+
             try
             {
                 string puuidData = await _riotApi.GetPUUIDBySummonerNameAndTagline(summonerName, tagline);

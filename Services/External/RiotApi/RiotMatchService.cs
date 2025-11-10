@@ -23,6 +23,15 @@ namespace Backend.Services.External.RiotApi
         /// </summary>
         public virtual async Task<string> GetMatchByPUUID(string puuid, int start = 0, int count = 10)
         {
+            ArgumentNullException.ThrowIfNull(puuid);
+
+            if (string.IsNullOrWhiteSpace(puuid))
+                throw new ArgumentException("PUUID cannot be empty", nameof(puuid));
+            if (start < 0)
+                throw new ArgumentOutOfRangeException(nameof(start), "Start index cannot be negative");
+            if (count < 1 || count > 100)
+                throw new ArgumentOutOfRangeException(nameof(count), "Count must be between 1 and 100");
+
             string url = $"{_matchApiBaseUrl}/matches/by-puuid/{puuid}/ids?start={start}&count={count}";
             _logger.LogInformation("🌐 API Call: GET {Url}", url);
 
@@ -34,6 +43,11 @@ namespace Backend.Services.External.RiotApi
         /// </summary>
         public virtual async Task<string> GetMatchDetailsByMatchId(string matchId)
         {
+            ArgumentNullException.ThrowIfNull(matchId);
+
+            if (string.IsNullOrWhiteSpace(matchId))
+                throw new ArgumentException("Match ID cannot be empty", nameof(matchId));
+
             string url = $"{_matchApiBaseUrl}/matches/{matchId}";
             
             HttpRequestMessage request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));

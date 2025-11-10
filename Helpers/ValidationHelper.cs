@@ -51,6 +51,22 @@ namespace Backend.Helpers
         }
 
         /// <summary>
+        /// Validate pagination start parameter
+        /// </summary>
+        public static bool IsValidPaginationStart(int start)
+        {
+            return start >= 0;
+        }
+
+        /// <summary>
+        /// Validate pagination count parameter
+        /// </summary>
+        public static bool IsValidPaginationCount(int count, int maxCount = 100)
+        {
+            return count >= 1 && count <= maxCount;
+        }
+
+        /// <summary>
         /// Validate pagination parameters
         /// </summary>
         public static (bool isValid, string? errorMessage) ValidatePagination(int start, int count, int maxCount = 100)

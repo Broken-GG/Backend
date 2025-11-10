@@ -17,6 +17,13 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Add memory cache for Data Dragon data
+builder.Services.AddMemoryCache();
+
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddCheck<Backend.Services.RiotApiHealthCheck>("riot_api");
+
 // Add CORS for frontend communication
 builder.Services.AddCors(options =>
 {
@@ -43,11 +50,15 @@ if (app.Environment.IsDevelopment())
 
 // Add middleware
 app.UseMiddleware<RequestLoggingMiddleware>();
+app.UseMiddleware<RateLimitingMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
+
+// Map health check endpoint
+app.MapHealthChecks("/health");
 
 Console.WriteLine("🌐 Backend server is running!");
 Console.WriteLine("📖 Swagger UI: http://localhost:5000/swagger");

@@ -23,6 +23,14 @@ namespace Backend.Services.External.RiotApi
         /// </summary>
         public virtual async Task<string> GetPUUIDBySummonerNameAndTagline(string summonerName, string tagline)
         {
+            ArgumentNullException.ThrowIfNull(summonerName);
+            ArgumentNullException.ThrowIfNull(tagline);
+
+            if (string.IsNullOrWhiteSpace(summonerName))
+                throw new ArgumentException("Summoner name cannot be empty", nameof(summonerName));
+            if (string.IsNullOrWhiteSpace(tagline))
+                throw new ArgumentException("Tagline cannot be empty", nameof(tagline));
+
             string url = $"{_accountApiBaseUrl}/{summonerName}/{tagline}";
             
             HttpRequestMessage request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));
@@ -38,6 +46,11 @@ namespace Backend.Services.External.RiotApi
         /// </summary>
         public virtual async Task<string> GetSummonerByPUUID(string puuid)
         {
+            ArgumentNullException.ThrowIfNull(puuid);
+
+            if (string.IsNullOrWhiteSpace(puuid))
+                throw new ArgumentException("PUUID cannot be empty", nameof(puuid));
+
             string url = $"{_summonerApiBaseUrl}/{puuid}";
             
             HttpRequestMessage request = SetRequestMessageHeaders(new HttpRequestMessage(HttpMethod.Get, url));

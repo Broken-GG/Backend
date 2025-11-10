@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Backend.Models.DTOs.Response;
 using Backend.Services;
 using Backend.Services.Interfaces;
+using Backend.Helpers;
 using Newtonsoft.Json;
 using System;
 using System.Threading.Tasks;
@@ -32,6 +33,12 @@ namespace Backend.Controllers
         [HttpGet("{puuid}")]
         public async Task<IActionResult> GetMasteryInfo(string puuid)
         {
+            // Input validation
+            if (!ValidationHelper.IsValidPuuid(puuid))
+            {
+                return BadRequest(new { message = "Invalid PUUID format" });
+            }
+
             try
             {
                 string masteryInfoJson = await _riotApi.GetMasteryInfoByPUUID(puuid);

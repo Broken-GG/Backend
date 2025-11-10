@@ -39,17 +39,24 @@ namespace Backend.Controllers
         [HttpGet("{puuid}")]
         public async Task<ActionResult<MatchSummaryResponse[]>> GetMatchInfo(string puuid, [FromQuery] int start = 0, [FromQuery] int count = 10)
         {
+            // Input validation
+            if (!ValidationHelper.IsValidPuuid(puuid))
+            {
+                return BadRequest(new { message = "Invalid PUUID format" });
+            }
+
+            if (!ValidationHelper.IsValidPaginationStart(start))
+            {
+                return BadRequest(new { message = "Start index cannot be negative" });
+            }
+
+            if (!ValidationHelper.IsValidPaginationCount(count))
+            {
+                return BadRequest(new { message = "Count must be between 1 and 100" });
+            }
+
             try
             {
-                if (start < 0)
-                {
-                    return BadRequest("Start index cannot be negative");
-                }
-
-                if (count < 1 || count > 100)
-                {
-                    return BadRequest("Count must be between 1 and 100");
-                }
 
                 string matchIdsJson = await _riotApi.GetMatchByPUUID(puuid, start, count);
 
@@ -121,17 +128,29 @@ namespace Backend.Controllers
         [HttpGet("summoner/{summonerName}/{tagline}")]
         public async Task<ActionResult<MatchSummaryResponse[]>> GetMatchInfoBySummoner(string summonerName, string tagline, [FromQuery] int start = 0, [FromQuery] int count = 10)
         {
+            // Input validation
+            if (!ValidationHelper.IsValidSummonerName(summonerName))
+            {
+                return BadRequest(new { message = "Invalid summoner name format" });
+            }
+
+            if (!ValidationHelper.IsValidTagline(tagline))
+            {
+                return BadRequest(new { message = "Invalid tagline format" });
+            }
+
+            if (!ValidationHelper.IsValidPaginationStart(start))
+            {
+                return BadRequest(new { message = "Start index cannot be negative" });
+            }
+
+            if (!ValidationHelper.IsValidPaginationCount(count))
+            {
+                return BadRequest(new { message = "Count must be between 1 and 100" });
+            }
+
             try
             {
-                if (start < 0)
-                {
-                    return BadRequest("Start index cannot be negative");
-                }
-
-                if (count < 1 || count > 100)
-                {
-                    return BadRequest("Count must be between 1 and 100");
-                }
 
                 string puuidData = await _riotApi.GetPUUIDBySummonerNameAndTagline(summonerName, tagline);
                 (string? puuid, string? gameName) = RiotApiDeserializer.DeserializePUUIDInfo(puuidData);

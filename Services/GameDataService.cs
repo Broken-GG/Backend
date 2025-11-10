@@ -1,133 +1,122 @@
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Backend.Services.Interfaces;
-using Microsoft.Extensions.Logging;
 
 namespace Backend.Services
 {
     public class GameDataService : IGameDataService
     {
         private readonly HttpClient _httpClient;
+        private readonly IMemoryCache _cache;
         private readonly ILogger<GameDataService> _logger;
-        private Dictionary<int, string>? _summonerSpellIdToKey;
-        private Dictionary<int, string>? _itemIdToName;
-        private readonly object _lock = new object();
         private readonly IChampionDataService _championDataService;
+        private const int CacheExpirationHours = 1;
 
-        public GameDataService(HttpClient httpClient, IChampionDataService championDataService, ILogger<GameDataService> logger)
+        public GameDataService(HttpClient httpClient, IChampionDataService championDataService, IMemoryCache cache, ILogger<GameDataService> logger)
         {
             _httpClient = httpClient;
             _championDataService = championDataService;
+            _cache = cache;
             _logger = logger;
         }
 
         // Fetch summoner spell mapping from Data Dragon
-        private Task<Dictionary<int, string>> GetSummonerSpellMappingAsync()
+        private async Task<Dictionary<int, string>> GetSummonerSpellMappingAsync()
         {
-            if (_summonerSpellIdToKey != null)
+            string version = await _championDataService.GetCurrentVersionAsync();
+            string cacheKey = $"summoner-spell-mapping-{version}";
+
+            if (_cache.TryGetValue(cacheKey, out Dictionary<int, string>? cachedMapping) && cachedMapping != null)
             {
-                return Task.FromResult(_summonerSpellIdToKey);
+                return cachedMapping;
             }
 
-            lock (_lock)
+            try
             {
-                if (_summonerSpellIdToKey != null)
+                string url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/summoner.json";
+                
+                string response = await _httpClient.GetStringAsync(url);
+                JObject json = JObject.Parse(response);
+                JToken? summonerSpells = json["data"];
+
+                Dictionary<int, string> summonerSpellIdToKey = new Dictionary<int, string>();
+
+                if (summonerSpells != null)
                 {
-                    return Task.FromResult(_summonerSpellIdToKey);
-                }
-
-                try
-                {
-                    string version = _championDataService.GetCurrentVersionAsync().Result;
-                    string url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/summoner.json";
-                    
-                    string response = _httpClient.GetStringAsync(url).Result;
-                    JObject json = JObject.Parse(response);
-                    JToken? summonerSpells = json["data"];
-
-                    _summonerSpellIdToKey = new Dictionary<int, string>();
-
-                    if (summonerSpells != null)
+                    foreach (JToken spell in summonerSpells)
                     {
-                        foreach (JToken spell in summonerSpells)
+                        JToken? spellData = spell.First;
+                        if (spellData != null && spellData["key"] != null)
                         {
-                            JToken? spellData = spell.First;
-                            if (spellData != null && spellData["key"] != null)
+                            string? keyValue = spellData["key"]?.ToString();
+                            if (keyValue != null && int.TryParse(keyValue, out int id))
                             {
-                                string? keyValue = spellData["key"]?.ToString();
-                                if (keyValue != null && int.TryParse(keyValue, out int id))
-                                {
-                                    string name = spell.Path.Split('.')[1];
-                                    _summonerSpellIdToKey[id] = name;
-                                }
+                                string name = spell.Path.Split('.')[1];
+                                summonerSpellIdToKey[id] = name;
                             }
                         }
                     }
-
-                    _logger.LogInformation("✅ Loaded {Count} summoner spells from Data Dragon", _summonerSpellIdToKey.Count);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "❌ Error loading summoner spell data");
-                    _summonerSpellIdToKey = new Dictionary<int, string>();
                 }
 
-                return Task.FromResult(_summonerSpellIdToKey);
+                _cache.Set(cacheKey, summonerSpellIdToKey, TimeSpan.FromHours(CacheExpirationHours));
+                _logger.LogInformation("Loaded {Count} summoner spells from Data Dragon version {Version}", summonerSpellIdToKey.Count, version);
+                return summonerSpellIdToKey;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading summoner spell data from version {Version}", version);
+                return new Dictionary<int, string>();
             }
         }
 
         // Fetch item mapping from Data Dragon
-        private Task<Dictionary<int, string>> GetItemMappingAsync()
+        private async Task<Dictionary<int, string>> GetItemMappingAsync()
         {
-            if (_itemIdToName != null)
+            string version = await _championDataService.GetCurrentVersionAsync();
+            string cacheKey = $"item-mapping-{version}";
+
+            if (_cache.TryGetValue(cacheKey, out Dictionary<int, string>? cachedMapping) && cachedMapping != null)
             {
-                return Task.FromResult(_itemIdToName);
+                return cachedMapping;
             }
 
-            lock (_lock)
+            try
             {
-                if (_itemIdToName != null)
+                string url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/item.json";
+                
+                string response = await _httpClient.GetStringAsync(url);
+                JObject json = JObject.Parse(response);
+                JToken? items = json["data"];
+
+                Dictionary<int, string> itemIdToName = new Dictionary<int, string>();
+
+                if (items != null)
                 {
-                    return Task.FromResult(_itemIdToName);
-                }
-
-                try
-                {
-                    string version = _championDataService.GetCurrentVersionAsync().Result;
-                    string url = $"https://ddragon.leagueoflegends.com/cdn/{version}/data/en_US/item.json";
-                    
-                    string response = _httpClient.GetStringAsync(url).Result;
-                    JObject json = JObject.Parse(response);
-                    JToken? items = json["data"];
-
-                    _itemIdToName = new Dictionary<int, string>();
-
-                    if (items != null)
+                    foreach (JToken item in items)
                     {
-                        foreach (JToken item in items)
+                        string itemId = item.Path.Split('.')[1];
+                        if (int.TryParse(itemId, out int id))
                         {
-                            string itemId = item.Path.Split('.')[1];
-                            if (int.TryParse(itemId, out int id))
-                            {
-                                JToken? itemData = item.First;
-                                string name = itemData?["name"]?.ToString() ?? itemId;
-                                _itemIdToName[id] = name;
-                            }
+                            JToken? itemData = item.First;
+                            string name = itemData?["name"]?.ToString() ?? itemId;
+                            itemIdToName[id] = name;
                         }
                     }
-
-                    _logger.LogInformation("✅ Loaded {Count} items from Data Dragon", _itemIdToName.Count);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "❌ Error loading item data");
-                    _itemIdToName = new Dictionary<int, string>();
                 }
 
-                return Task.FromResult(_itemIdToName);
+                _cache.Set(cacheKey, itemIdToName, TimeSpan.FromHours(CacheExpirationHours));
+                _logger.LogInformation("Loaded {Count} items from Data Dragon version {Version}", itemIdToName.Count, version);
+                return itemIdToName;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading item data from version {Version}", version);
+                return new Dictionary<int, string>();
             }
         }
 

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Backend.Models.DTOs.Response;
 using Backend.Services;
+using Backend.Helpers;
 using Newtonsoft.Json;
 using System;
 using System.Threading.Tasks;
@@ -29,6 +30,12 @@ namespace Backend.Controllers
         [HttpGet("{puuid}")]
         public async Task<IActionResult> GetRankedInfo(string puuid)
         {
+            // Input validation
+            if (!ValidationHelper.IsValidPuuid(puuid))
+            {
+                return BadRequest(new { message = "Invalid PUUID format" });
+            }
+
             try
             {
                 string rankedInfoJson = await _riotApi.GetRankedInfoByPUUID(puuid);
