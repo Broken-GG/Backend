@@ -18,11 +18,11 @@ namespace Backend.Controllers
     [Route("api/[controller]")]
     public class MatchController : ControllerBase
     {
-        private readonly RIOTAPI _riotApi;
+        private readonly IRIOTAPI _riotApi;
         private readonly IChampionDataService _championDataService;
         private readonly IGameDataService _gameDataService;
         
-        public MatchController(RIOTAPI riotApi, IChampionDataService championDataService, IGameDataService gameDataService)
+        public MatchController(IRIOTAPI riotApi, IChampionDataService championDataService, IGameDataService gameDataService)
         {
             _riotApi = riotApi;
             _championDataService = championDataService;

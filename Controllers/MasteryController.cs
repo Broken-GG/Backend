@@ -16,10 +16,10 @@ namespace Backend.Controllers
     [Route("api/[controller]")]
     public class MasteryController : ControllerBase
     {
-        private readonly RIOTAPI _riotApi;
+        private readonly IRIOTAPI _riotApi;
         private readonly IChampionDataService _championDataService;
 
-        public MasteryController(RIOTAPI riotApi, IChampionDataService championDataService)
+        public MasteryController(IRIOTAPI riotApi, IChampionDataService championDataService)
         {
             _riotApi = riotApi;
             _championDataService = championDataService;

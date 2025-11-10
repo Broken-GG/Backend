@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Backend.Models.DTOs.Response;
 using Backend.Services;
+using Backend.Services.Interfaces;
 using Backend.Helpers;
 using Newtonsoft.Json;
 using System;
@@ -15,9 +16,9 @@ namespace Backend.Controllers
     [Route("api/[controller]")]
     public class RankedController : ControllerBase
     {
-        private readonly RIOTAPI _riotApi;
+        private readonly IRIOTAPI _riotApi;
 
-        public RankedController(RIOTAPI riotApi)
+        public RankedController(IRIOTAPI riotApi)
         {
             _riotApi = riotApi;
         }

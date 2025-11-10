@@ -7,7 +7,7 @@ namespace Backend.Services
     /// Facade class for Riot API operations. Delegates to specialized service classes.
     /// Maintained for backward compatibility with existing controllers.
     /// </summary>
-    public class RIOTAPI
+    public class RIOTAPI : IRIOTAPI
     {
         private readonly IRiotAccountService _accountService;
         private readonly IRiotMatchService _matchService;
