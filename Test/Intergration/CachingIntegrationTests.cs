@@ -35,7 +35,6 @@ public class CachingIntegrationTests : IClassFixture<SimpleTestFactory>
         // Act - Second request (should be cached)
         var startTime2 = DateTime.UtcNow;
         var response2 = await _client.GetAsync(endpoint);
-        var duration2 = DateTime.UtcNow - startTime2;
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
