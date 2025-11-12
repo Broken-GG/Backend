@@ -1,7 +1,10 @@
-# Backend - Broken.GG API
-[![CI/CD Integration](https://github.com/Broken-GG/Backend/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Broken-GG/Backend/actions)
+# 🔌 Backend - Broken.GG API
 
-ASP.NET Core Web API for League of Legends match history tracking.
+[![CI/CD Pipeline](https://github.com/Broken-GG/Backend/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Broken-GG/Backend/actions)
+[![.NET Version](https://img.shields.io/badge/.NET-9.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+> ASP.NET Core 9.0 Web API for League of Legends match history tracking, powered by Riot Games API.
 
 ## 🏗 Architecture
 
@@ -33,42 +36,54 @@ Backend/
 └── README.md                    # This file
 ```
 
-## 🔧 Technologies
+## 🛠 Technologies
 
-- **.NET 9.0** - Latest .NET framework
-- **ASP.NET Core** - Web API framework
-- **Swagger/OpenAPI** - API documentation
-- **Newtonsoft.Json** - JSON serialization
-- **DotNetEnv** - Environment configuration
-- **xUnit** - Testing framework
-- **Moq** - Mocking library
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| **.NET** | 9.0 | Core framework |
+| **ASP.NET Core** | 9.0 | Web API |
+| **C#** | 12.0 | Language |
+| **Swagger/OpenAPI** | 6.8+ | API docs |
+| **xUnit** | 2.9+ | Testing |
+| **Moq** | 4.20+ | Mocking |
+| **DotNetEnv** | 3.0+ | Config management |
 
-## 🚀 Getting Started
+### External APIs
+- **Riot Games API** - Player and match data
+- **Data Dragon** - Static game assets
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- .NET 9 SDK
-- Riot Games API Key
+
+```bash
+# Check .NET version (requires 9.0+)
+dotnet --version
+
+# Get Riot API key
+# Visit: https://developer.riotgames.com/
+```
 
 ### Installation
 
-1. **Navigate to Backend folder**
+1. **Clone and navigate**
    ```bash
+   git clone https://github.com/Broken-GG/Backend.git
    cd Backend
    ```
 
-2. **Install dependencies**
+2. **Configure environment**
    ```bash
-   dotnet restore
+   # Create .env file
+   cp .env.example .env
+   
+   # Add your Riot API key
+   echo "RIOT_API_KEY=your_key_here" >> .env
    ```
 
-3. **Set up environment variables**
+3. **Restore dependencies**
    ```bash
-   cp src/.env.example src/.env
-   ```
-   
-   Edit `src/.env` and add your Riot API key:
-   ```env
-   RIOT_API_KEY=your_api_key_here
+   dotnet restore
    ```
 
 4. **Run the application**
@@ -76,60 +91,167 @@ Backend/
    dotnet run
    ```
 
-The API will start on `http://localhost:5000`
+5. **Verify it's running**
+   ```bash
+   curl http://localhost:5000/api/health
+   ```
 
-### Development
+### Development Commands
 
 ```bash
-# Watch mode (auto-reload)
+# Run with hot reload
 dotnet watch run
 
-# Build
-dotnet build
+# Build for release
+dotnet build --configuration Release
 
-# Run tests
+# Run all tests
 dotnet test
 
-# Clean
+# Run tests with coverage
+dotnet test --collect:"XPlat Code Coverage"
+
+# Format code
+dotnet format
+
+# Clean build artifacts
 dotnet clean
 ```
 
+### Access Points
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **API** | http://localhost:5000 | Base API endpoint |
+| **Swagger UI** | http://localhost:5000/swagger | Interactive API docs |
+| **Health Check** | http://localhost:5000/api/health | Service health |
+
 ## 📡 API Endpoints
 
-### Summoner Information
-- **GET** `/api/SummonerInfo/{name}/{tag}`
-  - Fetch summoner profile data
-  - Returns: SummonerInfo object
+### Health Check
+```http
+GET /api/health
+```
+Returns service health status and Riot API connectivity.
 
-### Match History
-- **GET** `/api/MatchInfo/{puuid}?start=0&count=10`
-  - Get match history by PUUID
-  - Returns: Array of MatchSummary
+### Summoner Endpoints
 
-- **GET** `/api/MatchInfo/summoner/{name}/{tag}?start=0&count=10`
-  - Get match history by summoner name
-  - Returns: Array of MatchSummary
+<details>
+<summary><b>GET</b> /api/summoner/{name}/{tag}</summary>
 
-### Side Panel Data
-- **GET** `/api/SidePanelInfo/ranked/{puuid}`
-  - Get ranked information
-  - Returns: Array of RankedInfo
+**Description:** Fetch summoner profile information
 
-- **GET** `/api/SidePanelInfo/mastery/{puuid}`
-  - Get champion mastery data
-  - Returns: Array of MasteryInfo
+**Parameters:**
+- `name` - Summoner name (e.g., "Faker")
+- `tag` - Tagline (e.g., "T1")
+
+**Example:**
+```bash
+curl http://localhost:5000/api/summoner/Faker/T1
+```
+
+**Response:**
+```json
+{
+  "summonerName": "Faker",
+  "tagline": "T1",
+  "puuid": "abc123...",
+  "level": 623,
+  "profileIconUrl": "https://..."
+}
+```
+</details>
+
+### Match Endpoints
+
+<details>
+<summary><b>GET</b> /api/match/{puuid}</summary>
+
+**Description:** Get match history by PUUID
+
+**Parameters:**
+- `puuid` - Player UUID
+- `start` - Offset (default: 0)
+- `count` - Number of matches (default: 10, max: 20)
+
+**Example:**
+```bash
+curl "http://localhost:5000/api/match/abc123?start=0&count=5"
+```
+
+</details>
+
+<details>
+<summary><b>GET</b> /api/match/summoner/{name}/{tag}</summary>
+
+**Description:** Get match history by summoner name
+
+**Example:**
+```bash
+curl "http://localhost:5000/api/match/summoner/Faker/T1?count=10"
+```
+
+</details>
+
+### Ranked & Mastery Endpoints
+
+<details>
+<summary><b>GET</b> /api/ranked/{puuid}</summary>
+
+Returns ranked information for all queues (Solo/Duo, Flex, etc.)
+
+</details>
+
+<details>
+<summary><b>GET</b> /api/mastery/{puuid}</summary>
+
+Returns top champion masteries with levels and points.
+
+</details>
+
+**Full documentation:** Visit `/swagger` when API is running
 
 ## 🧪 Testing
 
-Run all tests:
+### Run Tests
+
 ```bash
+# All tests
 dotnet test
+
+# Unit tests only
+dotnet test --filter "FullyQualifiedName~Unit"
+
+# Integration tests only
+dotnet test --filter "FullyQualifiedName~Integration"
+
+# With detailed output
+dotnet test --logger "console;verbosity=detailed"
+
+# With code coverage
+dotnet test --collect:"XPlat Code Coverage"
 ```
 
-Run with coverage:
-```bash
-dotnet test /p:CollectCoverage=true
+### Test Structure
+
 ```
+Test/
+├── Unit/
+│   ├── Controllers/      # Controller tests
+│   ├── Services/         # Service tests
+│   └── Helpers/          # Helper tests
+└── Integration/
+    ├── EndToEndApiTests.cs
+    ├── HealthCheckTests.cs
+    └── RateLimitingTests.cs
+```
+
+### CI/CD Tests
+
+Tests run automatically on:
+- Every push to `main` or `develop`
+- All pull requests
+- Manual workflow dispatch
 
 ## 🐳 Docker
 
@@ -185,49 +307,131 @@ Handle HTTP requests and responses. Keep them thin - delegate to services.
 ### Models
 Data Transfer Objects (DTOs) representing API contracts.
 
-## 🔄 API Rate Limiting
+## ⚡ Performance & Rate Limiting
 
-Riot API has rate limits:
-- Development key: 20 requests/second, 100 requests/2 minutes
-- Production key: Higher limits (apply on Riot Developer Portal)
+### Riot API Rate Limits
 
-Consider implementing:
-- Caching layer (Redis)
-- Rate limiting middleware
-- Request queuing
+| Key Type | Limits |
+|----------|--------|
+| **Development** | 20 req/sec, 100 req/2min |
+| **Production** | Higher limits ([Apply here](https://developer.riotgames.com/)) |
 
-## 🚧 Future Improvements
-
-- [ ] Add caching (Redis/Memory Cache)
-- [ ] Implement health check endpoint
-- [ ] Add request logging middleware
-- [ ] Create response compression
-- [ ] Add API versioning
-- [ ] Implement global error handling
-- [ ] Add authentication/authorization
-- [ ] Database integration for historical data
-- [ ] Add more comprehensive tests
-- [ ] Implement retry policies for external APIs
-
-## 📝 Notes
-
-- Data Dragon version is automatically fetched and cached
-- PUUID is kept internal for security
-- All date times are in UTC
-- Match data is returned with both individual and team stats
+### Implemented Features
+- ✅ Error handling middleware
+- ✅ Request logging
+- ✅ Health checks
+- ⏳ Caching (planned)
+- ⏳ Rate limiting middleware (planned)
 
 ## 🤝 Contributing
 
-1. Follow C# coding conventions
-2. Add tests for new features
-3. Update Swagger documentation
-4. Keep controllers thin
-5. Use async/await for I/O operations
-6. Handle exceptions appropriately
-7. Add XML documentation comments
+### Code Standards
+
+```csharp
+// ✅ Good: Async all the way
+public async Task<SummonerResponse> GetSummonerAsync(string name, string tag)
+{
+    return await _riotApiService.GetSummonerAsync(name, tag);
+}
+
+// ❌ Bad: Sync over async
+public SummonerResponse GetSummoner(string name, string tag)
+{
+    return _riotApiService.GetSummonerAsync(name, tag).Result;
+}
+```
+
+### Pull Request Checklist
+
+- [ ] Code follows C# conventions
+- [ ] Tests added/updated
+- [ ] Swagger docs updated
+- [ ] No compiler warnings
+- [ ] All tests pass locally
+- [ ] PR description explains changes
+
+### Commit Messages
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```bash
+feat(summoner): add regional endpoint support
+fix(match): resolve null reference in team stats
+docs(readme): update API endpoint examples
+test(ranked): add integration tests for ranked endpoints
+```
+
+## 🐛 Troubleshooting
+
+<details>
+<summary><b>401 Unauthorized from Riot API</b></summary>
+
+- Check `RIOT_API_KEY` in `.env`
+- Development keys expire after 24 hours
+- Regenerate at [developer.riotgames.com](https://developer.riotgames.com/)
+
+</details>
+
+<details>
+<summary><b>Tests failing with "Connection refused"</b></summary>
+
+Integration tests need Riot API key:
+```bash
+# Add to .env
+RIOT_API_KEY=your_key_here
+
+# Or skip integration tests
+dotnet test --filter "FullyQualifiedName~Unit"
+```
+
+</details>
+
+<details>
+<summary><b>Port 5000 already in use</b></summary>
+
+```bash
+# Change port in launchSettings.json or use environment variable
+export ASPNETCORE_URLS="http://localhost:5001"
+dotnet run
+```
+
+</details>
 
 ## 📚 Resources
 
-- [ASP.NET Core Documentation](https://docs.microsoft.com/aspnet/core)
-- [Riot Games API Documentation](https://developer.riotgames.com/)
-- [Data Dragon Documentation](https://riot-api-libraries.readthedocs.io/en/latest/ddragon.html)
+- [ASP.NET Core Docs](https://docs.microsoft.com/aspnet/core)
+- [Riot Games API](https://developer.riotgames.com/)
+- [Data Dragon](https://riot-api-libraries.readthedocs.io/en/latest/ddragon.html)
+- [xUnit Testing](https://xunit.net/)
+
+## 🎯 Roadmap
+
+- [x] Basic API endpoints
+- [x] Swagger documentation
+- [x] Health checks
+- [x] Error handling
+- [x] Integration tests
+- [x] Docker support
+- [x] CI/CD pipeline
+- [ ] Redis caching
+- [ ] Rate limiting middleware
+- [ ] Database integration
+- [ ] Authentication/Authorization
+- [ ] API versioning
+- [ ] Response compression
+- [ ] Request validation
+- [ ] Retry policies
+
+## 📝 License
+
+MIT License - See [LICENSE](LICENSE) file
+
+## 🙏 Acknowledgments
+
+- Riot Games for providing the API
+- Community contributors
+- ASP.NET Core team
+
+---
+
+<p align="center">Part of <a href="https://github.com/Broken-GG/BrokenGG">Broken.GG</a> project</p>
